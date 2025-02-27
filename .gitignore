@@ -1,0 +1,31 @@
+# IDE ve Editör dosyaları
+.idea/
+.vscode/
+*.iml
+
+# Python ile ilgili gereksiz dosyalar
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+
+# Sanal ortamlar
+venv/
+.env
+*.env
+*.venv
+
+# Docker dosyaları (geçici dosyalar)
+*.log
+docker-compose.override.yml
+
+# Django özel dosyaları
+db.sqlite3
+media/
+staticfiles/
+
+# MacOS ve Linux sistem dosyaları
+.DS_Store
+Thumbs.db
