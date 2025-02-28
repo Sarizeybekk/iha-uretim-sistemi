@@ -1,0 +1,183 @@
+/* Navbar.css */
+
+/* Navbar ana stili */
+.main-navbar {
+  transition: all 0.3s ease;
+  padding: 0.8rem 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.main-navbar.scrolled {
+  padding: 0.5rem 1rem;
+  background-color: rgba(33, 37, 41, 0.98) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Logo stili */
+.brand-logo {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.brand-logo .brand-text {
+  font-size: 1.1rem;
+}
+
+/* Navigasyon öğeleri */
+.nav-item {
+  display: flex;
+  align-items: center;
+  margin: 0 0.2rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item.active {
+  background-color: rgba(255, 255, 255, 0.15);
+  font-weight: 500;
+}
+
+.nav-icon {
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+.nav-text {
+  font-size: 0.95rem;
+}
+
+/* Kullanıcı dropdown stili */
+.user-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  background: transparent !important;
+  border: none !important;
+  padding: 0.5rem 0.8rem;
+}
+
+.user-dropdown-toggle:focus,
+.user-dropdown-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.user-dropdown-toggle::after {
+  margin-left: 0.5rem;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.user-dropdown-menu {
+  padding: 0;
+  min-width: 220px;
+}
+
+.dropdown-icon {
+  margin-right: 8px;
+}
+
+/* Bildirim butonu */
+.notification-btn {
+  position: relative;
+  background: transparent !important;
+  border: none !important;
+  padding: 0.5rem 0.8rem;
+}
+
+.notification-btn:focus,
+.notification-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.6rem;
+  padding: 0.15rem 0.35rem;
+}
+
+.notification-menu {
+  padding: 0;
+  width: 300px;
+  max-height: 400px;
+}
+
+.notification-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item.unread {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.notification-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.notification-message {
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+  color: #666;
+}
+
+.notification-date {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+@media (max-width: 992px) {
+  .user-dropdown-toggle {
+    margin-top: 0.5rem;
+  }
+
+  .notification-btn {
+    margin-top: 0.5rem;
+  }
+
+  .nav-item {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Responsive ayarlamalar */
+@media (max-width: 576px) {
+  .brand-text {
+    font-size: 1rem;
+  }
+
+  .nav-item {
+    margin: 0.25rem 0;
+  }
+}

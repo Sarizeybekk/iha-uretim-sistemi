@@ -1,0 +1,505 @@
+/* TeamManagement.css */
+
+/* General Layout */
+.team-management-container {
+  background-color: #f9f9fc;
+}
+
+.page-header {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.page-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.loading-content {
+  text-align: center;
+  padding: 30px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.loading-spinner {
+  margin-bottom: 20px;
+}
+
+/* Team Cards */
+.team-card {
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 20px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.team-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.team-card .card-header {
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+  padding: 15px;
+}
+
+.team-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+}
+
+.team-icon-badge.small {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.bg-primary {
+  background-color: #1c7ed6 !important;
+}
+
+.bg-success {
+  background-color: #37b24d !important;
+}
+
+.bg-info {
+  background-color: #1098ad !important;
+}
+
+.bg-warning {
+  background-color: #f59f00 !important;
+}
+
+.bg-danger {
+  background-color: #e03131 !important;
+}
+
+.team-name {
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+.team-type-pill {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.team-info {
+  margin-bottom: 15px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #343a40;
+}
+
+/* Member List */
+.member-list-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.member-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.member-item {
+  padding: 10px 15px;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.member-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #e9ecef;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.member-email {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.user-team {
+  border: 2px solid #1c7ed6;
+}
+
+.user-team-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 5px;
+  transform: translate(10px, -10px) rotate(15deg);
+}
+
+/* Team Table */
+.team-table th,
+.team-table td {
+  vertical-align: middle;
+}
+
+/* Team Type Card */
+.team-type-info {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+/* Section Titles */
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #343a40;
+}
+
+/* Team Distribution Table */
+.team-distribution-table th,
+.team-distribution-table td {
+  vertical-align: middle;
+}
+
+.team-type-badge {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+/* Team Details Modal */
+.modal-header .team-icon-badge {
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(45%, 1fr));
+  gap: 12px;
+}
+
+.team-description {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.responsibility-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.responsibility-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin-right: 15px;
+  font-size: 24px;
+  background-color: #e7f5ff;
+  color: #1c7ed6;
+}
+
+.assembly-responsibility .responsibility-icon {
+  background-color: #fff4e6;
+  color: #f76707;
+}
+
+.responsibility-content {
+  flex: 1;
+}
+
+.responsibility-content h6 {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.responsibility-content p {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+
+/* Member Tab */
+.detailed-member-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.detailed-member-item {
+  display: flex;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.detailed-member-item:last-child {
+  border-bottom: none;
+}
+
+.member-avatar-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: #e7f5ff;
+  border-radius: 50%;
+  margin-right: 15px;
+  font-size: 20px;
+  color: #1c7ed6;
+}
+
+.member-details {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #343a40;
+}
+
+.member-contact {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 8px;
+}
+
+.member-meta {
+  display: flex;
+  gap: 8px;
+}
+
+.member-role-badge {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* Empty States */
+.empty-icon {
+  font-size: 36px;
+  color: #adb5bd;
+  margin-bottom: 10px;
+}
+
+/* Button Styling */
+.add-team-btn {
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+/* Team Tabs Styling */
+.team-tabs .nav-link {
+  color: #495057;
+  font-weight: 500;
+  border: none;
+  padding: 10px 16px;
+}
+
+.team-tabs .nav-link.active {
+  color: #1c7ed6;
+  background-color: transparent;
+  border-bottom: 2px solid #1c7ed6;
+}
+
+/* DataTables Styling */
+.dataTables_wrapper .dt-buttons {
+  margin-bottom: 15px;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+.dataTables_wrapper .dataTables_length select {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+/* Responsive Styling */
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .responsibility-item {
+    flex-direction: column;
+  }
+
+  .responsibility-icon {
+    margin-bottom: 15px;
+    margin-right: 0;
+  }
+
+  .detailed-member-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .member-avatar-large {
+    margin-bottom: 15px;
+  }
+
+  .team-type-info {
+    padding: 10px;
+  }
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+  .team-management-container {
+    background-color: #1a1a1a;
+  }
+
+  .page-header {
+    background-color: #252525;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .page-title {
+    color: #e4e4e4;
+  }
+
+  .card {
+    background-color: #252525;
+    border-color: #333;
+  }
+
+  .card-header {
+    background-color: #252525;
+    border-bottom-color: #333;
+  }
+
+  .info-label {
+    color: #adb5bd;
+  }
+
+  .info-value {
+    color: #e4e4e4;
+  }
+
+  .team-card {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  .team-card .card-header {
+    background-color: #252525;
+    border-bottom-color: #333;
+  }
+
+  .member-list-header {
+    color: #e4e4e4;
+    border-bottom-color: #333;
+  }
+
+  .member-item {
+    border-color: #333;
+  }
+
+  .member-avatar {
+    background-color: #333;
+  }
+
+  .member-name {
+    color: #e4e4e4;
+  }
+
+  .team-type-info {
+    background-color: #333;
+  }
+
+  .responsibility-item {
+    background-color: #333;
+  }
+
+  .detailed-member-item {
+    border-bottom-color: #333;
+  }
+
+  .modal-content {
+    background-color: #252525;
+    border-color: #333;
+  }
+
+  .modal-header {
+    border-bottom-color: #333;
+  }
+
+  .modal-footer {
+    border-top-color: #333;
+  }
+
+  .team-description {
+    border-top-color: #333;
+  }
+
+  .empty-icon {
+    color: #6c757d;
+  }
+}

@@ -1,0 +1,416 @@
+/* src/styles/PartsManagement.css */
+
+/* Main container */
+.parts-management-container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* Page title */
+.page-title {
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0.25rem;
+}
+
+/* Cards */
+.card {
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+/* Stats cards */
+.stats-card {
+  border-radius: 0.5rem;
+  transition: transform 0.3s;
+  border-left: 4px solid #0d6efd;
+  overflow: hidden;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stats-title {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.stats-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.stats-icon {
+  width: 48px;
+  height: 48px;
+  background-color: rgba(13, 110, 253, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #0d6efd;
+}
+
+/* Filters and search */
+.view-filter-group {
+  width: 100%;
+}
+
+.view-filter-group .btn {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.search-container {
+  position: relative;
+}
+
+.search-input {
+  padding-right: 2.5rem;
+  border-radius: 0.5rem;
+  height: 38px;
+}
+
+.search-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+/* Table styling */
+.parts-table-card {
+  overflow: hidden;
+}
+
+.parts-table {
+  margin-bottom: 0;
+}
+
+.parts-table thead th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  border-bottom-width: 1px;
+  white-space: nowrap;
+}
+
+.parts-table th,
+.parts-table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.part-row {
+  transition: background-color 0.2s;
+}
+
+.part-row:hover {
+  background-color: #f8f9fa;
+}
+
+.part-type-badge,
+.aircraft-type-badge {
+  font-weight: 500;
+  font-size: 0.75rem;
+  padding: 0.35em 0.65em;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.team-name {
+  color: #0d6efd;
+  font-weight: 500;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.date-cell {
+  white-space: nowrap;
+}
+
+.date-value {
+  font-weight: 500;
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  white-space: nowrap;
+}
+
+.action-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 4px;
+}
+
+/* Empty state */
+.empty-state {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.large-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #dee2e6;
+}
+
+/* Create button */
+.create-part-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+}
+
+/* Distribution chart */
+.distribution-chart {
+  padding: 0.5rem;
+}
+
+.distribution-item {
+  margin-bottom: 1.25rem;
+}
+
+.distribution-label {
+  font-weight: 500;
+}
+
+.distribution-value {
+  color: #6c757d;
+}
+
+.progress {
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background-color: #e9ecef;
+}
+
+/* Modal styling */
+.part-modal .modal-content {
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.part-modal .modal-header {
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+.part-modal .modal-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.part-modal .modal-footer {
+  border-top: 1px solid #e9ecef;
+}
+
+/* Form styling */
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.form-select-lg {
+  height: 46px;
+  font-size: 1rem;
+  border-radius: 0.375rem;
+}
+
+.quantity-input-group {
+  display: flex;
+  align-items: center;
+}
+
+.quantity-input-group .form-control {
+  border-radius: 0;
+  height: 46px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.quantity-input-group .btn {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.quantity-input-group .btn:first-child {
+  border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.quantity-input-group .btn:last-child {
+  border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.team-display {
+  height: 46px;
+  display: flex;
+  align-items: center;
+}
+
+.team-badge {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5em 0.75em;
+}
+
+/* Part info summary */
+.part-info-summary {
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.part-info-summary h6 {
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.info-value {
+  font-weight: 500;
+}
+
+/* Loading button */
+.btn.is-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+/* DataTable styling */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  color: #495057;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  padding: 0.25rem 0.5rem;
+  margin: 0 0.25rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background-color: #0d6efd;
+  color: #fff !important;
+  border: 1px solid #0d6efd;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background-color: #e9ecef;
+}
+
+.dataTables_wrapper .dt-buttons {
+  margin-bottom: 1rem;
+}
+
+.dataTables_wrapper .dt-button {
+  margin-right: 0.5rem;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .view-filter-group .btn {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .part-info-summary {
+    padding: 0.75rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .action-button {
+    width: 100%;
+  }
+
+  .view-filter-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .view-filter-group .btn {
+    margin-bottom: 0.5rem;
+    border-radius: 0.25rem !important;
+  }
+}

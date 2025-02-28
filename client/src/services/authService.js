@@ -1,12 +1,12 @@
 import apiClient, { API } from './apiConfig';
 
 // Kullanıcı girişi - Tam URL ile istek
+// authService.js içindeki login fonksiyonuna ekleyin
 export const login = async (username, password) => {
   try {
     console.log("Attempting login with:", { username });
-    console.log("Using API endpoint:", `${apiClient.defaults.baseURL}${API.auth.login}`);
 
-    // API nesnesi üzerinden endpoint alıyoruz
+    // Login isteği
     const response = await apiClient.post(API.auth.login, {
       username,
       password
@@ -14,24 +14,21 @@ export const login = async (username, password) => {
 
     console.log("Login response:", response.data);
 
-    // Session tabanlı kimlik doğrulama için kullanıcı bilgilerini saklıyoruz
-    if (response.data && response.data.user) {
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      return response.data.user;
-    } else if (response.data && response.data.success) {
-      // Bazı API'ler sadece başarı durumu dönebilir
+    // Login başarılıysa, yeni bir CSRF token al ve localStorage'a kaydet
+    if (response.data) {
+      // CSRF token'ı yenile
+      const csrfResponse = await apiClient.get('/api/get-csrf-token/');
+      document.cookie = `csrftoken=${csrfResponse.data.csrfToken}`;
+
+      // Kullanıcı bilgilerini al
       const userResponse = await apiClient.get(API.auth.currentUser);
       localStorage.setItem('user', JSON.stringify(userResponse.data));
       return userResponse.data;
     }
+
     return null;
   } catch (error) {
     console.error('Login error:', error);
-    console.error('Request details:', {
-      url: error.config?.url,
-      fullUrl: error.config?.baseURL + error.config?.url,
-      method: error.config?.method,
-    });
     throw error;
   }
 };

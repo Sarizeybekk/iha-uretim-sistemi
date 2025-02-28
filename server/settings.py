@@ -138,6 +138,16 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ],
 }
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_COOKIE_SECURE = False
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/

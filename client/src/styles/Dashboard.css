@@ -1,0 +1,482 @@
+/* src/styles/Dashboard.css */
+.dashboard-container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* Header styling */
+.dashboard-header {
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 1rem;
+}
+
+/* Loading screen styling */
+.dashboard-loading {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f8f9fa;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.loading-content {
+  text-align: center;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  max-width: 300px;
+}
+
+.loading-logo {
+  margin-bottom: 1.5rem;
+}
+
+.loading-progress {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.loading-bar {
+  height: 4px;
+}
+
+/* Dashboard navigation */
+.dashboard-nav {
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.dashboard-nav .nav-link {
+  color: #495057;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border: none;
+  margin-right: 0.5rem;
+  transition: all 0.2s;
+}
+
+.dashboard-nav .nav-link.active {
+  color: #0d6efd;
+  border-bottom: 2px solid #0d6efd !important;
+  background-color: transparent;
+}
+
+.dashboard-nav .nav-link:hover:not(.active) {
+  color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Card styling */
+.dashboard-card {
+  border: none;
+  border-radius: 0.5rem;
+  transition: transform 0.3s, box-shadow 0.3s;
+  overflow: hidden;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dashboard-card .card-header {
+  padding: 1rem 1.25rem;
+  background-color: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+}
+
+.dashboard-card .card-body {
+  padding: 1.25rem;
+}
+
+.dashboard-card .card-footer {
+  background-color: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1.25rem;
+}
+
+/* Stats cards */
+.dashboard-stat-card {
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-footer-indicator {
+  height: 4px;
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+.stat-icon {
+  background-color: rgba(13, 110, 253, 0.1);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon-text {
+  font-size: 24px;
+}
+
+.stat-icon.text-success {
+  background-color: rgba(25, 135, 84, 0.1);
+}
+
+.stat-icon.text-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+}
+
+.stat-icon.text-info {
+  background-color: rgba(13, 202, 240, 0.1);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #343a40;
+  font-size: 1.5rem;
+  margin-bottom: 0;
+}
+
+.stat-value-sm {
+  font-weight: 600;
+  color: #343a40;
+  font-size: 1.125rem;
+}
+
+/* Team card styling */
+.team-name {
+  font-weight: 600;
+  color: #343a40;
+}
+
+.team-avatar-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #0d6efd;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.team-progress {
+  height: 6px;
+  border-radius: 3px;
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
+  color: #343a40;
+}
+
+/* Activity timeline */
+.activity-timeline {
+  margin-top: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.activity-text {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.activity-time {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+/* Inventory styling */
+.inventory-overview {
+  margin-bottom: 1.5rem;
+}
+
+.inventory-stat {
+  border-radius: 8px;
+  transition: transform 0.3s;
+}
+
+.inventory-stat:hover {
+  transform: translateY(-3px);
+}
+
+.inventory-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.part-types-container {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.part-type-item {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+.part-type-item:hover {
+  background-color: #f8f9fa;
+}
+
+.part-type-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.75rem;
+}
+
+.type-name {
+  font-weight: 500;
+  color: #495057;
+}
+
+.part-count-badge {
+  font-weight: 500;
+}
+
+.stock-status-badge {
+  font-size: 0.75rem;
+}
+
+.inventory-progress {
+  height: 6px;
+  border-radius: 3px;
+}
+
+/* Aircraft styling */
+.aircraft-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.aircraft-progress {
+  height: 6px;
+  border-radius: 3px;
+}
+
+.aircraft-grid {
+  margin-top: 1rem;
+}
+
+.aircraft-type-card {
+  transition: transform 0.3s;
+}
+
+.aircraft-type-card:hover {
+  transform: translateY(-3px);
+}
+
+.aircraft-type-inner {
+  border-radius: 8px;
+  background-color: #fff;
+  height: 100%;
+  transition: box-shadow 0.3s;
+}
+
+.aircraft-type-card:hover .aircraft-type-inner {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.aircraft-type-icon {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.aircraft-count {
+  font-weight: 500;
+}
+
+.aircraft-type-progress {
+  height: 4px;
+  border-radius: 2px;
+}
+
+/* Quick links styling */
+.quick-links-card {
+  border-radius: 0.5rem;
+}
+
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.quick-link {
+  border-width: 1.5px;
+  font-weight: 500;
+  transition: all 0.3s;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  min-width: 120px;
+  flex: 1;
+}
+
+.quick-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.quick-link-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Notification styling */
+.notification-btn {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.notification-menu {
+  width: 300px;
+  padding: 0;
+}
+
+.notification-menu .dropdown-header {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.notification-item {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+/* Dashboard actions */
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+}
+
+.search-bar {
+  width: 250px;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .quick-link {
+    min-width: 100px;
+  }
+
+  .search-bar {
+    width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-actions {
+    margin-top: 1rem;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .search-bar {
+    width: 60%;
+  }
+
+  .quick-link {
+    min-width: calc(50% - 0.375rem);
+    flex: none;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .dashboard-card .card-body {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-nav .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .quick-link {
+    min-width: 100%;
+  }
+}
