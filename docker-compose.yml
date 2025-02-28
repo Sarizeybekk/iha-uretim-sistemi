@@ -17,7 +17,7 @@ services:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/apps
+      - .:/app
     ports:
       - "8001:8000"
     depends_on:
@@ -28,6 +28,21 @@ services:
       - DATABASE_PASSWORD=postgres
       - DATABASE_HOST=db
       - DATABASE_PORT=5432
+
+  frontend:
+      build: ./client
+      container_name: iha_frontend
+      volumes:
+        - ./client:/app
+        - /app/node_modules
+      ports:
+        - "3000:3000"
+      depends_on:
+        - web
+      environment:
+        - REACT_APP_API_URL=http://localhost:8001/api
+        - NODE_OPTIONS=--openssl-legacy-provider
+
 
 volumes:
   postgres_data:
