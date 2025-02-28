@@ -336,7 +336,7 @@ const Dashboard = () => {
                       <div className="team-header d-flex align-items-center mb-3">
                         <div className="team-avatar me-3">
                           <div className="team-avatar-circle">
-                            {userTeam.takim.takim_tipi.charAt(0).toUpperCase()}
+                            {userTeam?.takim?.takim_tipi?.charAt(0)?.toUpperCase() || "?"}
                           </div>
                         </div>
                         <div>

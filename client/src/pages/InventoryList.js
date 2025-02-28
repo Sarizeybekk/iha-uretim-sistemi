@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Card, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Container, Card, Alert, Spinner, Badge, Button, Modal, Form } from 'react-bootstrap';
 import $ from 'jquery';
 import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'datatables.net-responsive-bs5';
-import { getInventory, getLowStockItems } from '../services/apiService';
+import inventoryService from '../services/inventoryService';
 import { toast } from 'react-toastify';
 
 const InventoryList = () => {
@@ -16,43 +15,56 @@ const InventoryList = () => {
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
 
+  // Silme işlemi için state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  // Düzenleme işlemi için state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    mevcut_adet: 0,
+    minimum_esik: 0
+  });
+
   // Fetch inventory data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [inventoryData, lowStockData] = await Promise.all([
-          getInventory(),
-          getLowStockItems()
-        ]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-        setInventory(inventoryData);
-        setLowStockItems(lowStockData);
+      // Tüm envanter verilerini çek
+      const inventoryData = await inventoryService.getInventory();
+      setInventory(inventoryData);
 
-        // Initialize DataTable
-        setTimeout(() => {
-          if (tableRef.current) {
-            if (dataTableRef.current) {
-              dataTableRef.current.destroy();
-            }
+      // Düşük stok öğelerini filtrele
+      const lowStock = inventoryData.filter(item => item.dusuk_stok === true);
+      setLowStockItems(lowStock);
 
-            dataTableRef.current = $(tableRef.current).DataTable({
-              responsive: true,
-              language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
-              }
-            });
+      // Initialize DataTable
+      setTimeout(() => {
+        if (tableRef.current) {
+          if (dataTableRef.current) {
+            dataTableRef.current.destroy();
           }
-          setLoading(false);
-        }, 0);
-      } catch (error) {
-        console.error('Error fetching inventory:', error);
-        setError('Envanter yüklenirken bir hata oluştu.');
-        toast.error('Envanter yüklenirken bir hata oluştu.');
-        setLoading(false);
-      }
-    };
 
+          dataTableRef.current = $(tableRef.current).DataTable({
+            responsive: true,
+            language: {
+              url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
+            }
+          });
+        }
+        setLoading(false);
+      }, 0);
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      setError('Envanter yüklenirken bir hata oluştu.');
+      toast.error('Envanter yüklenirken bir hata oluştu.');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
 
     // Cleanup DataTable when component unmounts
@@ -69,8 +81,8 @@ const InventoryList = () => {
     const grouped = {};
 
     inventory.forEach(item => {
-      const aircraftType = item.ucak_tipi ? item.ucak_tipi.name : 'Bilinmeyen';
-      const partType = item.parca_tipi ? item.parca_tipi.name : 'Bilinmeyen';
+      const aircraftType = item.ucak_tipi_detay ? item.ucak_tipi_detay.ad : 'Bilinmeyen';
+      const partType = item.parca_tipi_detay ? item.parca_tipi_detay.ad : 'Bilinmeyen';
 
       if (!grouped[aircraftType]) {
         grouped[aircraftType] = {};
@@ -80,7 +92,7 @@ const InventoryList = () => {
         grouped[aircraftType][partType] = 0;
       }
 
-      grouped[aircraftType][partType] += item.miktar;
+      grouped[aircraftType][partType] += item.mevcut_adet;
     });
 
     return grouped;
@@ -88,7 +100,7 @@ const InventoryList = () => {
 
   // Check if all parts needed for an aircraft are available
   const checkAircraftCompleteness = (aircraftType, parts) => {
-    const requiredParts = ['Kanat', 'Gövde', 'Kuyruk', 'Aviyonik'];
+    const requiredParts = ['KANAT', 'GÖVDE', 'KUYRUK', 'AVIYONIK'];
     const missingParts = [];
 
     requiredParts.forEach(part => {
@@ -104,13 +116,91 @@ const InventoryList = () => {
   };
 
   // Get status badge color
-  const getStatusBadge = (quantity) => {
+  const getStatusBadge = (quantity, threshold) => {
     if (quantity === 0) return 'danger';
-    if (quantity < 3) return 'warning';
+    if (quantity < threshold) return 'warning';
     return 'success';
   };
 
+  // Handle delete button click
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setShowDeleteModal(true);
+  };
+
+  // Handle edit button click
+  const handleEditClick = (item) => {
+    setItemToEdit(item);
+    setEditFormData({
+      mevcut_adet: item.mevcut_adet,
+      minimum_esik: item.minimum_esik
+    });
+    setShowEditModal(true);
+  };
+
+  // Confirm delete action
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      setLoading(true);
+      await inventoryService.deleteInventoryItem(itemToDelete.id);
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+      toast.success('Parça başarıyla silindi');
+
+      // Refresh data after delete
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      toast.error('Parça silinirken bir hata oluştu');
+      setLoading(false);
+    }
+  };
+
+  // Handle edit form changes
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData({
+      ...editFormData,
+      [name]: name === 'mevcut_adet' || name === 'minimum_esik' ? parseInt(value, 10) || 0 : value
+    });
+  };
+
+  // Confirm edit action
+  const confirmEdit = async (e) => {
+    e.preventDefault();
+    if (!itemToEdit) return;
+
+    try {
+      setLoading(true);
+      await inventoryService.updateInventoryItem(itemToEdit.id, editFormData);
+      setShowEditModal(false);
+      setItemToEdit(null);
+      toast.success('Parça başarıyla güncellendi');
+
+      // Refresh data after update
+      fetchData();
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+      toast.error('Parça güncellenirken bir hata oluştu');
+      setLoading(false);
+    }
+  };
+
   const groupedInventory = getGroupedInventory();
+
+  // Tarih formatını düzeltme yardımcı fonksiyonu
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Bilinmiyor';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Geçersiz Tarih';
+      return date.toLocaleString('tr-TR');
+    } catch (e) {
+      return 'Geçersiz Tarih';
+    }
+  };
 
   return (
     <Container className="inventory-container">
@@ -126,7 +216,7 @@ const InventoryList = () => {
           <ul className="mb-0">
             {lowStockItems.map((item, index) => (
               <li key={index}>
-                {item.ucak_tipi.name} - {item.parca_tipi.name}: {item.miktar} adet
+                {item.ucak_tipi_detay ? item.ucak_tipi_detay.ad : '-'} - {item.parca_tipi_detay ? item.parca_tipi_detay.ad : '-'}: {item.mevcut_adet} adet (Minimum: {item.minimum_esik})
               </li>
             ))}
           </ul>
@@ -138,34 +228,42 @@ const InventoryList = () => {
         <Card.Header>Uçak Montaj Durumları</Card.Header>
         <Card.Body>
           <div className="row">
-            {Object.entries(groupedInventory).map(([aircraftType, parts]) => {
-              const { complete, missingParts } = checkAircraftCompleteness(aircraftType, parts);
-              return (
-                <div key={aircraftType} className="col-md-6 col-lg-3 mb-3">
-                  <Card className="h-100">
-                    <Card.Header className={complete ? 'bg-success text-white' : 'bg-warning'}>
-                      {aircraftType}
-                    </Card.Header>
-                    <Card.Body>
-                      {complete ? (
-                        <Alert variant="success" className="mb-0">
-                          Tüm parçalar mevcut! Montaja hazır.
-                        </Alert>
-                      ) : (
-                        <Alert variant="warning" className="mb-0">
-                          <div>Eksik Parçalar:</div>
-                          <ul className="mb-0 ps-3">
-                            {missingParts.map(part => (
-                              <li key={part}>{part}</li>
-                            ))}
-                          </ul>
-                        </Alert>
-                      )}
-                    </Card.Body>
-                  </Card>
-                </div>
-              );
-            })}
+            {Object.keys(groupedInventory).length > 0 ? (
+              Object.entries(groupedInventory).map(([aircraftType, parts]) => {
+                const { complete, missingParts } = checkAircraftCompleteness(aircraftType, parts);
+                return (
+                  <div key={aircraftType} className="col-md-6 col-lg-3 mb-3">
+                    <Card className="h-100">
+                      <Card.Header className={complete ? 'bg-success text-white' : 'bg-warning'}>
+                        {aircraftType}
+                      </Card.Header>
+                      <Card.Body>
+                        {complete ? (
+                          <Alert variant="success" className="mb-0">
+                            Tüm parçalar mevcut! Montaja hazır.
+                          </Alert>
+                        ) : (
+                          <Alert variant="warning" className="mb-0">
+                            <div>Eksik Parçalar:</div>
+                            <ul className="mb-0 ps-3">
+                              {missingParts.map(part => (
+                                <li key={part}>{part}</li>
+                              ))}
+                            </ul>
+                          </Alert>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-12">
+                <Alert variant="info">
+                  Montaj durumu bilgisi bulunmamaktadır.
+                </Alert>
+              </div>
+            )}
           </div>
         </Card.Body>
       </Card>
@@ -188,10 +286,11 @@ const InventoryList = () => {
                     <th>ID</th>
                     <th>Parça Tipi</th>
                     <th>Uçak Tipi</th>
-                    <th>Miktar</th>
+                    <th>Mevcut Adet</th>
+                    <th>Minimum Eşik</th>
                     <th>Durum</th>
-                    <th>Üretim Takımı</th>
                     <th>Son Güncelleme</th>
+                    <th>İşlemler</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,21 +298,39 @@ const InventoryList = () => {
                     inventory.map((item) => (
                       <tr key={item.id}>
                         <td>{item.id}</td>
-                        <td>{item.parca_tipi ? item.parca_tipi.name : '-'}</td>
-                        <td>{item.ucak_tipi ? item.ucak_tipi.name : '-'}</td>
-                        <td>{item.miktar}</td>
+                        <td>{item.parca_tipi_detay ? item.parca_tipi_detay.ad : '-'}</td>
+                        <td>{item.ucak_tipi_detay ? item.ucak_tipi_detay.ad : '-'}</td>
+                        <td>{item.mevcut_adet}</td>
+                        <td>{item.minimum_esik}</td>
                         <td>
-                          <Badge bg={getStatusBadge(item.miktar)}>
-                            {item.miktar === 0 ? 'Stokta Yok' : item.miktar < 3 ? 'Az Stok' : 'Yeterli'}
+                          <Badge bg={getStatusBadge(item.mevcut_adet, item.minimum_esik)}>
+                            {item.mevcut_adet === 0 ? 'Stokta Yok' :
+                             item.mevcut_adet < item.minimum_esik ? 'Az Stok' : 'Yeterli'}
                           </Badge>
                         </td>
-                        <td>{item.takim ? item.takim.name : '-'}</td>
-                        <td>{new Date(item.updated_at).toLocaleString('tr-TR')}</td>
+                        <td>{formatDate(item.son_guncelleme)}</td>
+                        <td>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="me-1"
+                            onClick={() => handleEditClick(item)}
+                          >
+                            Düzenle
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDeleteClick(item)}
+                          >
+                            Sil
+                          </Button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="text-center">
+                      <td colSpan="8" className="text-center">
                         Henüz envanter kaydı bulunmamaktadır.
                       </td>
                     </tr>
@@ -224,6 +341,85 @@ const InventoryList = () => {
           )}
         </Card.Body>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Parça Silme Onayı</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {itemToDelete && (
+            <div>
+              <p>Aşağıdaki parçayı silmek istediğinize emin misiniz?</p>
+              <p>
+                <strong>Parça Tipi:</strong> {itemToDelete.parca_tipi_detay?.ad || '-'}<br />
+                <strong>Uçak Tipi:</strong> {itemToDelete.ucak_tipi_detay?.ad || '-'}<br />
+                <strong>Mevcut Adet:</strong> {itemToDelete.mevcut_adet}
+              </p>
+              <Alert variant="warning">
+                Bu işlem geri alınamaz!
+              </Alert>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            İptal
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Sil
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Parça Güncelleme</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={confirmEdit}>
+          <Modal.Body>
+            {itemToEdit && (
+              <div>
+                <p>
+                  <strong>Parça Tipi:</strong> {itemToEdit.parca_tipi_detay?.ad || '-'}<br />
+                  <strong>Uçak Tipi:</strong> {itemToEdit.ucak_tipi_detay?.ad || '-'}
+                </p>
+                <Form.Group className="mb-3">
+                  <Form.Label>Mevcut Adet</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="mevcut_adet"
+                    value={editFormData.mevcut_adet}
+                    onChange={handleEditFormChange}
+                    min="0"
+                    required
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Minimum Eşik</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="minimum_esik"
+                    value={editFormData.minimum_esik}
+                    onChange={handleEditFormChange}
+                    min="0"
+                    required
+                  />
+                </Form.Group>
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+              İptal
+            </Button>
+            <Button variant="primary" type="submit">
+              Güncelle
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </Container>
   );
 };

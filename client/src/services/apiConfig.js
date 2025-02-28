@@ -88,7 +88,24 @@ export const API = {
     removeUser: (teamId, userId) => `/api/teams/takimlar/${teamId}/uyeler/${userId}/`,
     stats: '/api/teams/takimlar/istatistikler/',
   },
-  // Diğer servisler...
+    parts: {
+        list: '/api/parts/parcalar/',  // Tüm parçaları listeleme
+        create: '/api/parts/parcalar/', // Yeni parça oluşturma
+        detail: (id) => `/api/parts/parcalar/${id}/`, // Belirli bir parçayı alma
+        update: (id) => `/api/parts/parcalar/${id}/`, // Parçayı güncelleme
+        delete: (id) => `/api/parts/parcalar/${id}/`, // Parçayı silme
+        totalCount: '/api/parts/parcalar/toplam_parca_sayisi/', // Toplam parça sayısı
+        types: '/api/parts/parca-tipleri/', // Parça tiplerini çekme
+        status: '/api/parts/parca-durumlari/', // Parça durumlarını çekme
+  },
+    inventory: {
+        list: '/api/inventory/envanter/',
+        lowStock: '/api/inventory/envanter/dusuk_stok/',
+        detail: (id) => `/api/inventory/envanter/${id}/`,
+        update: (id) => `/api/inventory/envanter/${id}/`,
+        delete: (id) => `/api/inventory/envanter/${id}/`,
+  }
+
 };
 
 export default apiClient;

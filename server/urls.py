@@ -35,6 +35,10 @@ urlpatterns = [
 
     path('api/accounts/', include('apps.accounts.urls')),
     path('api/teams/',include('apps.teams.urls')),
+    path('api/parts/', include('apps.parts.urls')),
+    path('api/inventory/', include('apps.inventory.urls')),
+    path('api/aircrafts/', include('apps.aircrafts.urls')),
+
 
 
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),

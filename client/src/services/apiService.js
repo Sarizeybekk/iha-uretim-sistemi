@@ -154,6 +154,16 @@ export const getPartTypes = async () => {
     throw error;
   }
 };
+export const getTotalParts = async () => {
+  try {
+    const response = await apiClient.get('/api/parts/toplam-parca-sayisi/');
+    return response.data.toplam_parca_sayisi;  // API sadece sayıyı döndürdüğü için doğrudan döndürüyoruz
+  } catch (error) {
+    console.error('Toplam parça sayısı alınırken hata:', error);
+    return 0;  // Hata olursa 0 göster
+  }
+};
+
 
 // UÇAK SERVİSLERİ
 export const getAircraft = async () => {
