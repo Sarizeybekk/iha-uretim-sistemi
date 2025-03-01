@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from .models import Parca, ParcaTipi, ParcaDurumu
 from .serializers import ParcaSerializer, ParcaTipiSerializer, ParcaDurumuSerializer
 from django.core.exceptions import ValidationError
-
+from .permission import ParcaPermission
 class ParcaTipiViewSet(viewsets.ModelViewSet):
     queryset = ParcaTipi.objects.all()
     serializer_class = ParcaTipiSerializer
@@ -20,7 +20,7 @@ class ParcaDurumuViewSet(viewsets.ModelViewSet):
 class ParcaViewSet(viewsets.ModelViewSet):
     queryset = Parca.objects.all()
     serializer_class = ParcaSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated,ParcaPermission]
 
     def create(self, request, *args, **kwargs):
         try:

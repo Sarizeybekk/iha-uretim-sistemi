@@ -1,354 +1,231 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Form, Modal, Alert, Spinner, Badge, Tabs, Tab, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Spinner, Alert, Button, Table, Modal, Form, Badge } from 'react-bootstrap';
+import axios from 'axios';
 import { toast } from 'react-toastify';
-import $ from 'jquery';
-import 'datatables.net-bs5';
-import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
-import 'datatables.net-responsive-bs5';
-import 'datatables.net-buttons-bs5';
-import 'datatables.net-buttons/js/buttons.html5.js';
-import 'datatables.net-buttons/js/buttons.print.js';
-import { getParts, createPart, updatePart, recyclePartAPI, getPartTypes, getAircraftTypes, getUserTeams } from '../services/apiService';
-import Swal from 'sweetalert2';
-import '../styles/PartsManagement.css';
-
-// Validation schema for part form
-const partValidationSchema = Yup.object().shape({
-  parca_tipi: Yup.number().required('Parça tipi seçilmelidir'),
-  ucak_tipi: Yup.number().required('Uçak tipi seçilmelidir'),
-  miktar: Yup.number()
-    .required('Miktar gereklidir')
-    .positive('Miktar pozitif olmalıdır')
-    .integer('Miktar tam sayı olmalıdır')
-});
 
 const PartsManagement = ({ user }) => {
+  // State variables
   const [parts, setParts] = useState([]);
   const [partTypes, setPartTypes] = useState([]);
   const [aircraftTypes, setAircraftTypes] = useState([]);
+  const [durumlar, setDurumlar] = useState([]);
   const [userTeam, setUserTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [currentPart, setCurrentPart] = useState(null);
-  const [viewMode, setViewMode] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [dashboardStats, setDashboardStats] = useState({
     totalParts: 0,
-    partsCreatedToday: 0,
     partsByType: {},
     partsByAircraft: {}
   });
-  
-  const tableRef = useRef(null);
-  const dataTableRef = useRef(null);
+
+  const [selectedPart, setSelectedPart] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState({
+    parca_tipi: '',
+    ucak_tipi: '',
+    seri_no: '',
+    durum: '',
+    notlar: ''
+  });
+
+  // API URLs
+  const API_URL = 'http://localhost:8001/api';
+  const PARTS_URL = `${API_URL}/parts/parcalar/`;
+  const PART_TYPES_URL = `${API_URL}/parts/parca-tipleri/`;
+  const AIRCRAFT_TYPES_URL = `${API_URL}/parts/ucak-tipleri/`;
+  const DURUMLAR_URL = `${API_URL}/parts/durumlar/`;
 
   // Fetch initial data
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [partsData, partTypesData, aircraftTypesData, userTeamsData] = await Promise.all([
-          getParts(),
-          getPartTypes(),
-          getAircraftTypes(),
-          getUserTeams()
-        ]);
-
-        setParts(partsData);
-        setPartTypes(partTypesData);
-        setAircraftTypes(aircraftTypesData);
-
-        // Calculate dashboard stats
-        calculateDashboardStats(partsData, partTypesData, aircraftTypesData);
-
-        // Set user's team if available
-        if (userTeamsData && userTeamsData.length > 0) {
-          setUserTeam(userTeamsData[0]);
-        }
-
-        // Initialize DataTable with a small delay to ensure DOM is ready
-        setTimeout(() => {
-          initializeDataTable();
-          setLoading(false);
-        }, 100);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Veriler yüklenirken bir hata oluştu.');
-        toast.error('Veriler yüklenirken bir hata oluştu.');
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-
-    // Cleanup DataTable when component unmounts
-    return () => {
-      if (dataTableRef.current) {
-        dataTableRef.current.destroy();
-        dataTableRef.current = null;
-      }
-    };
+    fetchAllData();
   }, []);
+
+  // Function to fetch all the necessary data
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+
+      const [partsResponse, partTypesResponse, aircraftTypesResponse, durumlarResponse] = await Promise.all([
+        axios.get(PARTS_URL),
+        axios.get(PART_TYPES_URL),
+        axios.get(AIRCRAFT_TYPES_URL),
+        axios.get(DURUMLAR_URL)
+      ]);
+
+      const partsData = partsResponse.data;
+      const partTypesData = partTypesResponse.data;
+      const aircraftTypesData = aircraftTypesResponse.data;
+      const durumlarData = durumlarResponse.data;
+
+      setParts(partsData);
+      setPartTypes(partTypesData);
+      setAircraftTypes(aircraftTypesData);
+      setDurumlar(durumlarData);
+
+      calculateDashboardStats(partsData, partTypesData, aircraftTypesData);
+
+      setDashboardStats(prevStats => ({
+        ...prevStats,
+        totalParts: partsData.length || 0
+      }));
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Veriler yüklenirken bir hata oluştu.');
+      toast.error('Veriler yüklenirken bir hata oluştu.');
+      setLoading(false);
+    }
+  };
 
   // Calculate dashboard statistics
   const calculateDashboardStats = (partsData, partTypesData, aircraftTypesData) => {
-    // Total parts count (sum of quantities)
-    const totalParts = partsData.reduce((sum, part) => sum + part.miktar, 0);
-    
-    // Parts created today
-    const today = new Date().toDateString();
-    const partsCreatedToday = partsData.filter(part => 
-      new Date(part.created_at).toDateString() === today
-    ).length;
-    
-    // Parts by type
+    if (!partsData || !partTypesData || !aircraftTypesData) return;
+
+    const totalParts = partsData.length;
+
     const partsByType = {};
     partTypesData.forEach(type => {
-      partsByType[type.name] = 0;
+      partsByType[type.ad] = 0;
     });
-    
+
     partsData.forEach(part => {
-      if (part.parca_tipi && part.parca_tipi.name) {
-        partsByType[part.parca_tipi.name] = (partsByType[part.parca_tipi.name] || 0) + part.miktar;
+      if (part.parca_tipi && part.parca_tipi.ad) {
+        partsByType[part.parca_tipi.ad] = (partsByType[part.parca_tipi.ad] || 0) + 1;
       }
     });
-    
-    // Parts by aircraft type
+
     const partsByAircraft = {};
     aircraftTypesData.forEach(type => {
-      partsByAircraft[type.name] = 0;
+      partsByAircraft[type.ad] = 0;
     });
-    
+
     partsData.forEach(part => {
-      if (part.ucak_tipi && part.ucak_tipi.name) {
-        partsByAircraft[part.ucak_tipi.name] = (partsByAircraft[part.ucak_tipi.name] || 0) + part.miktar;
+      const aircraftType = aircraftTypesData.find(type => type.id === part.ucak_tipi);
+      if (aircraftType) {
+        partsByAircraft[aircraftType.ad] = (partsByAircraft[aircraftType.ad] || 0) + 1;
       }
     });
-    
+
     setDashboardStats({
       totalParts,
-      partsCreatedToday,
       partsByType,
       partsByAircraft
     });
   };
 
-  // Initialize DataTable
-  const initializeDataTable = () => {
-    if (tableRef.current) {
-      if (dataTableRef.current) {
-        dataTableRef.current.destroy();
-      }
-
-      dataTableRef.current = $(tableRef.current).DataTable({
-        responsive: true,
-        language: {
-          url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
-        },
-        dom: 'Bfrtip',
-        buttons: [
-          {
-            extend: 'excel',
-            text: 'Excel\'e Aktar',
-            className: 'btn btn-sm btn-success me-2',
-            exportOptions: {
-              columns: [0, 1, 2, 3, 4, 5]
-            }
-          },
-          {
-            extend: 'print',
-            text: 'Yazdır',
-            className: 'btn btn-sm btn-info',
-            exportOptions: {
-              columns: [0, 1, 2, 3, 4, 5]
-            }
-          }
-        ],
-        order: [[0, 'desc']]
-      });
-    }
-  };
-
-  // Filter parts based on view mode
-  const getFilteredParts = () => {
-    let filtered = [...parts];
-    
-    // Filter by view mode
-    if (viewMode === 'team' && userTeam) {
-      filtered = filtered.filter(part => 
-        part.takim && part.takim.id === userTeam.takim.id
-      );
-    } else if (viewMode === 'my-type' && userTeam) {
-      filtered = filtered.filter(part => 
-        part.parca_tipi && part.parca_tipi.name === userTeam.takim.takim_tipi
-      );
-    }
-    
-    // Filter by search term
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(part => 
-        (part.parca_tipi && part.parca_tipi.name.toLowerCase().includes(search)) ||
-        (part.ucak_tipi && part.ucak_tipi.name.toLowerCase().includes(search)) ||
-        (part.takim && part.takim.name.toLowerCase().includes(search)) ||
-        String(part.id).includes(search)
-      );
-    }
-    
-    return filtered;
-  };
-
-  // Handle form submission for creating/updating parts
-  const handleSubmitPart = async (values, { setSubmitting, resetForm }) => {
-    try {
-      // Add team information to the part data
-      const partData = {
-        ...values,
-        takim: userTeam ? userTeam.takim.id : null
-      };
-
-      let result;
-      if (currentPart) {
-        // Update existing part
-        result = await updatePart(currentPart.id, partData);
-        toast.success('Parça başarıyla güncellendi!');
-      } else {
-        // Create new part
-        result = await createPart(partData);
-        toast.success('Parça başarıyla oluşturuldu!');
-      }
-
-      setShowModal(false);
-      resetForm();
-
-      // Refresh parts list
-      const updatedParts = await getParts();
-      setParts(updatedParts);
-      
-      // Update dashboard stats
-      calculateDashboardStats(updatedParts, partTypes, aircraftTypes);
-
-      // Refresh DataTable
-      if (dataTableRef.current) {
-        dataTableRef.current.destroy();
-      }
-
-      setTimeout(() => {
-        initializeDataTable();
-      }, 100);
-    } catch (error) {
-      console.error('Error submitting part:', error);
-      let errorMessage = 'Parça kaydedilirken bir hata oluştu.';
-
-      if (error.response && error.response.data) {
-        // Extract error message from API response
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (typeof error.response.data === 'object') {
-          const firstError = Object.values(error.response.data)[0];
-          if (Array.isArray(firstError)) {
-            errorMessage = firstError[0];
-          } else if (typeof firstError === 'string') {
-            errorMessage = firstError;
-          }
-        }
-      }
-
-      toast.error(errorMessage);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Handle part recycling (deletion)
-  const handleRecyclePart = async (partId) => {
-    // Confirm recycling with SweetAlert2
-    const result = await Swal.fire({
-      title: 'Emin misiniz?',
-      text: 'Bu parça geri dönüşüme gönderilecek.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Evet, geri dönüşüme gönder!',
-      cancelButtonText: 'İptal'
+  // Handle input change
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
     });
+  };
 
-    if (result.isConfirmed) {
+  // Handle form submit for adding a new part
+  const handleAddPart = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post(PARTS_URL, formData);
+
+      if (response.status === 201) {
+        toast.success('Parça başarıyla eklendi');
+        setShowAddModal(false);
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error adding part:', error);
+      toast.error('Parça eklenirken bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle form submit for editing a part
+  const handleEditPart = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.put(`${PARTS_URL}${selectedPart.id}/`, formData);
+
+      if (response.status === 200) {
+        toast.success('Parça başarıyla güncellendi');
+        setShowEditModal(false);
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error updating part:', error);
+      toast.error('Parça güncellenirken bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle part deletion
+  const handleDeletePart = async (partId) => {
+    if (window.confirm('Bu parçayı silmek istediğinizden emin misiniz?')) {
       try {
-        await recyclePartAPI(partId);
-        toast.success('Parça başarıyla geri dönüşüme gönderildi!');
+        setLoading(true);
+        const response = await axios.delete(`${PARTS_URL}${partId}/`);
 
-        // Refresh parts list
-        const updatedParts = await getParts();
-        setParts(updatedParts);
-        
-        // Update dashboard stats
-        calculateDashboardStats(updatedParts, partTypes, aircraftTypes);
-
-        // Refresh DataTable
-        if (dataTableRef.current) {
-          dataTableRef.current.destroy();
+        if (response.status === 204) {
+          toast.success('Parça başarıyla silindi');
+          fetchAllData();
         }
-
-        setTimeout(() => {
-          initializeDataTable();
-        }, 100);
       } catch (error) {
-        console.error('Error recycling part:', error);
-        toast.error('Parça geri dönüşüme gönderilirken bir hata oluştu.');
+        console.error('Error deleting part:', error);
+        toast.error('Parça silinirken bir hata oluştu');
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  // Open modal for creating/editing a part
-  const openPartModal = (part = null) => {
-    setCurrentPart(part);
-    setShowModal(true);
+  // Open edit modal and set selected part
+  const openEditModal = (part) => {
+    setSelectedPart(part);
+    setFormData({
+      parca_tipi: part.parca_tipi?.id || '',
+      ucak_tipi: part.ucak_tipi || '',
+      seri_no: part.seri_no || '',
+      durum: part.durum?.id || '',
+      notlar: part.notlar || ''
+    });
+    setShowEditModal(true);
   };
 
-  // Check if user can create parts based on team type
-  const canCreateParts = () => {
-    return userTeam && userTeam.takim.takim_tipi !== 'Montaj';
+  // Get aircraft type name from id
+  const getAircraftTypeName = (id) => {
+    const aircraft = aircraftTypes.find(type => type.id === id);
+    return aircraft ? aircraft.ad : '-';
   };
 
-  // Get the allowed part type ID based on user's team
-  const getAllowedPartTypeId = () => {
-    if (!userTeam || !partTypes.length) return '';
-
-    const userTeamType = userTeam.takim.takim_tipi;
-    const matchingPartType = partTypes.find(type => type.name === userTeamType);
-
-    return matchingPartType ? matchingPartType.id : '';
-  };
-
-  // Get badge variant based on part type
-  const getPartTypeBadgeVariant = (partTypeName) => {
-    switch (partTypeName?.toLowerCase()) {
-      case 'kanat': return 'primary';
-      case 'gövde': return 'success';
-      case 'kuyruk': return 'info';
-      case 'aviyonik': return 'warning';
+  // Get status badge color based on status
+  const getStatusBadgeColor = (statusName) => {
+    switch (statusName?.toUpperCase()) {
+      case 'KULLANILIYOR': return 'success';
+      case 'ARIZA': return 'danger';
+      case 'BAKIM': return 'warning';
+      case 'STOKTA': return 'info';
       default: return 'secondary';
     }
   };
 
-  // Get badge variant based on aircraft type
-  const getAircraftTypeBadgeVariant = (aircraftTypeName) => {
-    switch (aircraftTypeName?.toUpperCase()) {
-      case 'TB2': return 'primary';
-      case 'TB3': return 'success';
-      case 'AKINCI': return 'danger';
-      case 'KIZILELMA': return 'warning';
+  // Get part type badge color
+  const getPartTypeBadgeColor = (typeName) => {
+    switch (typeName?.toUpperCase()) {
+      case 'KANAT': return 'primary';
+      case 'GÖVDE': return 'info';
+      case 'AVIYONIK': return 'success';
+      case 'MOTOR': return 'danger';
       default: return 'secondary';
     }
   };
 
   return (
     <Container fluid className="parts-management-container py-4">
+      {/* Header section */}
       <Row className="mb-4">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
@@ -356,26 +233,32 @@ const PartsManagement = ({ user }) => {
               <h2 className="page-title">Parça Yönetimi</h2>
               <p className="text-muted">
                 {userTeam ? (
-                  <>Takım: <span className="fw-bold">{userTeam.takim.name}</span> ({userTeam.takim.takim_tipi})</>
+                  <>Takım: <span className="fw-bold">{userTeam.takim?.name}</span> ({userTeam.takim?.takim_tipi})</>
                 ) : (
                   'Henüz bir takıma atanmamışsınız.'
                 )}
               </p>
             </div>
-            
-            {canCreateParts() && (
-              <Button 
-                variant="primary" 
-                className="create-part-btn"
-                onClick={() => openPartModal()}
-              >
-                <i className="bi bi-plus-circle me-2"></i> Yeni Parça Oluştur
-              </Button>
-            )}
+            <Button
+              variant="primary"
+              onClick={() => {
+                setFormData({
+                  parca_tipi: '',
+                  ucak_tipi: '',
+                  seri_no: '',
+                  durum: '',
+                  notlar: ''
+                });
+                setShowAddModal(true);
+              }}
+            >
+              <i className="bi bi-plus-circle me-2"></i> Yeni Parça Ekle
+            </Button>
           </div>
         </Col>
       </Row>
 
+      {/* Error message */}
       {error && (
         <Row className="mb-4">
           <Col>
@@ -385,547 +268,339 @@ const PartsManagement = ({ user }) => {
       )}
 
       {/* Dashboard Stats Cards */}
-      <Row className="mb-4">
-        <Col md={3} sm={6} className="mb-3">
-          <Card className="stats-card">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="stats-title text-muted">Toplam Parça</h6>
-                  <h3 className="stats-value">{dashboardStats.totalParts}</h3>
-                </div>
-                <div className="stats-icon">
-                  <i className="bi bi-boxes"></i>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={3} sm={6} className="mb-3">
-          <Card className="stats-card">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="stats-title text-muted">Bugün Oluşturulan</h6>
-                  <h3 className="stats-value">{dashboardStats.partsCreatedToday}</h3>
-                </div>
-                <div className="stats-icon">
-                  <i className="bi bi-calendar-check"></i>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={3} sm={6} className="mb-3">
-          <Card className="stats-card">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="stats-title text-muted">Parça Çeşidi</h6>
-                  <h3 className="stats-value">{partTypes.length}</h3>
-                </div>
-                <div className="stats-icon">
-                  <i className="bi bi-grid-3x3"></i>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={3} sm={6} className="mb-3">
-          <Card className="stats-card">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="stats-title text-muted">Uçak Çeşidi</h6>
-                  <h3 className="stats-value">{aircraftTypes.length}</h3>
-                </div>
-                <div className="stats-icon">
-                  <i className="bi bi-airplane"></i>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Filters and Search */}
-      <Card className="mb-4">
-        <Card.Body>
-          <Row>
-            <Col md={6} className="mb-3 mb-md-0">
-              <div className="btn-group view-filter-group" role="group">
-                <Button 
-                  variant={viewMode === 'all' ? 'primary' : 'outline-primary'} 
-                  onClick={() => setViewMode('all')}
-                >
-                  Tüm Parçalar
-                </Button>
-                <Button 
-                  variant={viewMode === 'team' ? 'primary' : 'outline-primary'} 
-                  onClick={() => setViewMode('team')}
-                >
-                  Takım Parçaları
-                </Button>
-                <Button 
-                  variant={viewMode === 'my-type' ? 'primary' : 'outline-primary'} 
-                  onClick={() => setViewMode('my-type')}
-                >
-                  {userTeam?.takim.takim_tipi || 'Tip'} Parçaları
-                </Button>
-              </div>
+      {loading ? (
+        <div className="text-center py-5">
+          <Spinner animation="border" role="status" variant="primary">
+            <span className="visually-hidden">Yükleniyor...</span>
+          </Spinner>
+          <p className="mt-3 text-muted">Veriler yükleniyor...</p>
+        </div>
+      ) : (
+        <>
+          <Row className="mb-4">
+            <Col md={4} sm={6} className="mb-3">
+              <Card className="stats-card">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="stats-title text-muted">Toplam Parça</h6>
+                      <h3 className="stats-value">{dashboardStats.totalParts}</h3>
+                    </div>
+                    <div className="stats-icon">
+                      <i className="bi bi-boxes"></i>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
             </Col>
-            <Col md={6}>
-              <div className="search-container">
-                <input
-                  type="text"
-                  className="form-control search-input"
-                  placeholder="Parça ara..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <span className="search-icon">
-                  <i className="bi bi-search"></i>
-                </span>
-              </div>
+
+            <Col md={4} sm={6} className="mb-3">
+              <Card className="stats-card">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="stats-title text-muted">Parça Çeşidi</h6>
+                      <h3 className="stats-value">{partTypes.length}</h3>
+                    </div>
+                    <div className="stats-icon">
+                      <i className="bi bi-grid-3x3"></i>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col md={4} sm={6} className="mb-3">
+              <Card className="stats-card">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="stats-title text-muted">Uçak Çeşidi</h6>
+                      <h3 className="stats-value">{aircraftTypes.length}</h3>
+                    </div>
+                    <div className="stats-icon">
+                      <i className="bi bi-airplane"></i>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
             </Col>
           </Row>
-        </Card.Body>
-      </Card>
 
-      {/* Parts Table */}
-      <Card className="mb-4 parts-table-card">
-        <Card.Header>
-          <span>Parça Listesi</span>
-          <Badge bg="info" className="ms-2">{getFilteredParts().length} parça</Badge>
-        </Card.Header>
-        <Card.Body>
-          {loading ? (
-            <div className="text-center py-5">
-              <Spinner animation="border" role="status" variant="primary">
-                <span className="visually-hidden">Yükleniyor...</span>
-              </Spinner>
-              <p className="mt-3 text-muted">Parçalar yükleniyor...</p>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table ref={tableRef} className="table table-striped table-hover parts-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Parça Tipi</th>
-                    <th>Uçak Tipi</th>
-                    <th>Miktar</th>
-                    <th>Takım</th>
-                    <th>Oluşturulma Tarihi</th>
-                    <th>İşlemler</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {getFilteredParts().length > 0 ? (
-                    getFilteredParts().map((part) => (
-                      <tr key={part.id} className="part-row">
-                        <td>{part.id}</td>
-                        <td>
-                          <Badge 
-                            bg={getPartTypeBadgeVariant(part.parca_tipi?.name)} 
-                            className="part-type-badge"
-                          >
-                            {part.parca_tipi ? part.parca_tipi.name : '-'}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge 
-                            bg={getAircraftTypeBadgeVariant(part.ucak_tipi?.name)} 
-                            className="aircraft-type-badge"
-                          >
-                            {part.ucak_tipi ? part.ucak_tipi.name : '-'}
-                          </Badge>
-                        </td>
-                        <td>
-                          <span className="fw-bold">{part.miktar}</span> adet
-                        </td>
-                        <td>
-                          {part.takim ? (
-                            <OverlayTrigger
-                              placement="top"
-                              overlay={
-                                <Tooltip>
-                                  {part.takim.takim_tipi} takımı
-                                </Tooltip>
-                              }
+          {/* Parts Table */}
+          <Card className="mb-4">
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <h5 className="mb-0">Parça Listesi</h5>
+              <Form.Group className="mb-0 search-container" style={{ width: '300px' }}>
+                <Form.Control
+                  type="text"
+                  placeholder="Parça ara..."
+                  className="search-input"
+                />
+              </Form.Group>
+            </Card.Header>
+            <Card.Body>
+              <div className="table-responsive">
+                <Table striped hover>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Seri No</th>
+                      <th>Parça Tipi</th>
+                      <th>Uçak Tipi</th>
+                      <th>Durum</th>
+                      <th>Üretim Tarihi</th>
+                      <th>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parts.length > 0 ? (
+                      parts.map((part) => (
+                        <tr key={part.id}>
+                          <td>{part.id}</td>
+                          <td>{part.seri_no}</td>
+                          <td>
+                            <Badge bg={getPartTypeBadgeColor(part.parca_tipi?.ad)}>
+                              {part.parca_tipi ? part.parca_tipi.ad : '-'}
+                            </Badge>
+                          </td>
+                          <td>
+                            <Badge bg="info">
+                              {getAircraftTypeName(part.ucak_tipi)}
+                            </Badge>
+                          </td>
+                          <td>
+                            <Badge bg={getStatusBadgeColor(part.durum?.ad)}>
+                              {part.durum ? part.durum.ad : '-'}
+                            </Badge>
+                          </td>
+                          <td>{new Date(part.uretim_tarihi).toLocaleDateString('tr-TR')}</td>
+                          <td>
+                            <Button
+                              variant="outline-warning"
+                              size="sm"
+                              className="me-2"
+                              onClick={() => openEditModal(part)}
                             >
-                              <span className="team-name">{part.takim.name}</span>
-                            </OverlayTrigger>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="date-cell">
-                            <span className="date-value">
-                              {new Date(part.created_at).toLocaleDateString('tr-TR')}
-                            </span>
-                            <small className="text-muted d-block">
-                              {new Date(part.created_at).toLocaleTimeString('tr-TR')}
-                            </small>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <OverlayTrigger
-                              placement="top"
-                              overlay={<Tooltip>Düzenle</Tooltip>}
+                              <i className="bi bi-pencil"></i>
+                            </Button>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => handleDeletePart(part.id)}
                             >
-                              <Button
-                                variant="outline-warning"
-                                size="sm"
-                                className="action-button me-2"
-                                onClick={() => openPartModal(part)}
-                              >
-                                <i className="bi bi-pencil"></i>
-                              </Button>
-                            </OverlayTrigger>
-                            
-                            <OverlayTrigger
-                              placement="top"
-                              overlay={<Tooltip>Geri Dönüşüm</Tooltip>}
-                            >
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                className="action-button"
-                                onClick={() => handleRecyclePart(part.id)}
-                              >
-                                <i className="bi bi-trash"></i>
-                              </Button>
-                            </OverlayTrigger>
-                          </div>
+                              <i className="bi bi-trash"></i>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="text-center py-3">
+                          Henüz parça eklenmemiş.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="7" className="text-center py-4">
-                        <div className="empty-state">
-                          <i className="bi bi-inbox large-icon"></i>
-                          <p>Görüntülenecek parça bulunamadı.</p>
-                          {viewMode !== 'all' && (
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm"
-                              onClick={() => setViewMode('all')}
-                            >
-                              Tüm parçaları göster
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card.Body>
-      </Card>
-
-      {/* Part Distribution Charts */}
-      <Row className="mb-4">
-        <Col md={6} className="mb-4 mb-md-0">
-          <Card className="h-100">
-            <Card.Header>Parça Tiplerine Göre Dağılım</Card.Header>
-            <Card.Body>
-              <div className="distribution-chart">
-                {Object.entries(dashboardStats.partsByType).map(([type, count]) => (
-                  <div key={type} className="distribution-item mb-3">
-                    <div className="d-flex justify-content-between mb-1">
-                      <span className="distribution-label">{type}</span>
-                      <span className="distribution-value">{count} adet</span>
-                    </div>
-                    <div className="progress">
-                      <div 
-                        className={`progress-bar bg-${getPartTypeBadgeVariant(type)}`} 
-                        role="progressbar" 
-                        style={{ 
-                          width: `${Math.min(100, (count / dashboardStats.totalParts) * 100)}%` 
-                        }}
-                        aria-valuenow={count} 
-                        aria-valuemin="0" 
-                        aria-valuemax={dashboardStats.totalParts}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
+                    )}
+                  </tbody>
+                </Table>
               </div>
             </Card.Body>
           </Card>
-        </Col>
-        
-        <Col md={6}>
-          <Card className="h-100">
-            <Card.Header>Uçak Tiplerine Göre Dağılım</Card.Header>
-            <Card.Body>
-              <div className="distribution-chart">
-                {Object.entries(dashboardStats.partsByAircraft).map(([type, count]) => (
-                  <div key={type} className="distribution-item mb-3">
-                    <div className="d-flex justify-content-between mb-1">
-                      <span className="distribution-label">{type}</span>
-                      <span className="distribution-value">{count} adet</span>
-                    </div>
-                    <div className="progress">
-                      <div 
-                        className={`progress-bar bg-${getAircraftTypeBadgeVariant(type)}`} 
-                        role="progressbar" 
-                        style={{ 
-                          width: `${Math.min(100, (count / dashboardStats.totalParts) * 100)}%` 
-                        }}
-                        aria-valuenow={count} 
-                        aria-valuemin="0" 
-                        aria-valuemax={dashboardStats.totalParts}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+        </>
+      )}
 
-      {/* Part Create/Edit Modal */}
-      <Modal 
-        show={showModal} 
-        onHide={() => setShowModal(false)} 
-        backdrop="static"
-        size="lg"
-        centered
-        className="part-modal"
-      >
+      {/* Add Part Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>
-            {currentPart ? (
-              <>
-                <i className="bi bi-pencil-square me-2"></i>
-                Parça Düzenle
-              </>
-            ) : (
-              <>
-                <i className="bi bi-plus-square me-2"></i>
-                Yeni Parça Oluştur
-              </>
-            )}
-          </Modal.Title>
+          <Modal.Title>Yeni Parça Ekle</Modal.Title>
         </Modal.Header>
-        <Formik
-          initialValues={{
-            parca_tipi: currentPart ? currentPart.parca_tipi.id : getAllowedPartTypeId(),
-            ucak_tipi: currentPart ? currentPart.ucak_tipi.id : '',
-            miktar: currentPart ? currentPart.miktar : 1
-          }}
-          validationSchema={partValidationSchema}
-          onSubmit={handleSubmitPart}
-        >
-          {({
-            values,
-            errors,
-            touched,
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            isSubmitting,
-            setFieldValue
-          }) => (
-            <Form onSubmit={handleSubmit}>
-              <Modal.Body>
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Parça Tipi</Form.Label>
-                      <Form.Select
-                        name="parca_tipi"
-                        value={values.parca_tipi}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={touched.parca_tipi && errors.parca_tipi}
-                        disabled={getAllowedPartTypeId() !== ''}
-                        className="form-select-lg"
-                      >
-                        <option value="">Seçiniz</option>
-                        {partTypes.map(type => (
-                          <option key={type.id} value={type.id}>
-                            {type.name}
-                          </option>
-                        ))}
-                      </Form.Select>
-                      <Form.Control.Feedback type="invalid">
-                        {errors.parca_tipi}
-                      </Form.Control.Feedback>
-                      {getAllowedPartTypeId() !== '' && (
-                        <Form.Text className="text-info">
-                          <i className="bi bi-info-circle me-1"></i>
-                          {userTeam.takim.takim_tipi} takımı olduğunuz için sadece bu tür parça üretebilirsiniz.
-                        </Form.Text>
-                      )}
-                    </Form.Group>
-                  </Col>
-                  
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Uçak Tipi</Form.Label>
-                      <Form.Select
-                        name="ucak_tipi"
-                        value={values.ucak_tipi}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={touched.ucak_tipi && errors.ucak_tipi}
-                        className="form-select-lg"
-                      >
-                        <option value="">Seçiniz</option>
-                        {aircraftTypes.map(type => (
-                          <option key={type.id} value={type.id}>
-                            {type.name}
-                          </option>
-                        ))}
-                      </Form.Select>
-                      <Form.Control.Feedback type="invalid">
-                        {errors.ucak_tipi}
-                      </Form.Control.Feedback>
-                    </Form.Group>
+        <Modal.Body>
+          <Form>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Parça Tipi</Form.Label>
+                  <Form.Select
+                    name="parca_tipi"
+                    value={formData.parca_tipi}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Seçiniz</option>
+                    {partTypes.map(type => (
+                      <option key={type.id} value={type.id}>
+                        {type.ad}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
               </Col>
-                </Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Uçak Tipi</Form.Label>
+                  <Form.Select
+                    name="ucak_tipi"
+                    value={formData.ucak_tipi}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Seçiniz</option>
+                    {aircraftTypes.map(type => (
+                      <option key={type.id} value={type.id}>
+                        {type.ad}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Seri No</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="seri_no"
+                    value={formData.seri_no}
+                    onChange={handleInputChange}
+                    placeholder="Seri No giriniz"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Durum</Form.Label>
+                  <Form.Select
+                    name="durum"
+                    value={formData.durum}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Seçiniz</option>
+                    {durumlar.map(durum => (
+                      <option key={durum.id} value={durum.id}>
+                        {durum.ad}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Notlar</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="notlar"
+                value={formData.notlar}
+                onChange={handleInputChange}
+                placeholder="Parça hakkında notlar"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+            İptal
+          </Button>
+          <Button variant="primary" onClick={handleAddPart}>
+            Ekle
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Miktar</Form.Label>
-                      <div className="quantity-input-group">
-                        <Button
-                          variant="outline-secondary"
-                          onClick={() => {
-                            if (values.miktar > 1) {
-                              setFieldValue('miktar', Number(values.miktar) - 1);
-                            }
-                          }}
-                          type="button"
-                        >
-                          -
-                        </Button>
-                        <Form.Control
-                          type="number"
-                          name="miktar"
-                          value={values.miktar}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isInvalid={touched.miktar && errors.miktar}
-                          min="1"
-                          className="text-center"
-                        />
-                        <Button
-                          variant="outline-secondary"
-                          onClick={() => {
-                            setFieldValue('miktar', Number(values.miktar) + 1);
-                          }}
-                          type="button"
-                        >
-                          +
-                        </Button>
-                      </div>
-                      <Form.Control.Feedback type="invalid">
-                        {errors.miktar}
-                      </Form.Control.Feedback>
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Takım</Form.Label>
-                      <div className="form-control-plaintext team-display">
-                        {userTeam ? (
-                          <Badge bg="primary" className="team-badge">
-                            {userTeam.takim.name} ({userTeam.takim.takim_tipi})
-                          </Badge>
-                        ) : (
-                          <span className="text-muted">Takım atanmamış</span>
-                        )}
-                      </div>
-                      <Form.Text className="text-muted">
-                        Parça, mevcut takımınıza atanacaktır.
-                      </Form.Text>
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                {currentPart && (
-                  <div className="part-info-summary">
-                    <h6>Parça Bilgileri</h6>
-                    <div className="info-grid">
-                      <div className="info-item">
-                        <span className="info-label">ID:</span>
-                        <span className="info-value">{currentPart.id}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Oluşturulma:</span>
-                        <span className="info-value">
-                          {new Date(currentPart.created_at).toLocaleDateString('tr-TR')}
-                        </span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Son Güncelleme:</span>
-                        <span className="info-value">
-                          {new Date(currentPart.updated_at || currentPart.created_at).toLocaleDateString('tr-TR')}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <Alert variant="info" className="mt-3 mb-0">
-                  <i className="bi bi-info-circle-fill me-2"></i>
-                  {currentPart ? (
-                    'Dikkat: Parçayı güncellemek envanter durumunu etkileyebilir.'
-                  ) : (
-                    'Yeni parça oluşturmak, genel envantere eklenecektir.'
-                  )}
-                </Alert>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button
-                  variant="outline-secondary"
-                  onClick={() => setShowModal(false)}
-                >
-                  İptal
-                </Button>
-                <Button
-                  variant="primary"
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={isSubmitting ? 'is-loading' : ''}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                      />
-                      Kaydediliyor...
-                    </>
-                  ) : currentPart ? (
-                    <>Güncelle</>
-                  ) : (
-                    <>Oluştur</>
-                  )}
-                </Button>
-              </Modal.Footer>
-            </Form>
-          )}
-        </Formik>
+      {/* Edit Part Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Parça Düzenle</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Parça Tipi</Form.Label>
+                  <Form.Select
+                    name="parca_tipi"
+                    value={formData.parca_tipi}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Seçiniz</option>
+                    {partTypes.map(type => (
+                      <option key={type.id} value={type.id}>
+                        {type.ad}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Uçak Tipi</Form.Label>
+                  <Form.Select
+                    name="ucak_tipi"
+                    value={formData.ucak_tipi}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Seçiniz</option>
+                    {aircraftTypes.map(type => (
+                      <option key={type.id} value={type.id}>
+                        {type.ad}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Seri No</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="seri_no"
+                    value={formData.seri_no}
+                    onChange={handleInputChange}
+                    placeholder="Seri No giriniz"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Durum</Form.Label>
+                  <Form.Select
+                    name="durum"
+                    value={formData.durum}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Seçiniz</option>
+                    {durumlar.map(durum => (
+                      <option key={durum.id} value={durum.id}>
+                        {durum.ad}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Notlar</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="notlar"
+                value={formData.notlar}
+                onChange={handleInputChange}
+                placeholder="Parça hakkında notlar"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            İptal
+          </Button>
+          <Button variant="primary" onClick={handleEditPart}>
+            Güncelle
+          </Button>
+        </Modal.Footer>
       </Modal>
     </Container>
   );

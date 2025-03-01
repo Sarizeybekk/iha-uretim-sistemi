@@ -15,20 +15,7 @@ class ParcaModelTest(TestCase):
         self.user1 = Kullanici.objects.create_user(username="testuser1", password="password123")
         self.user2 = Kullanici.objects.create_user(username="testuser2", password="password123")
 
-        # Test takımı oluştur
-        self.takim = Takim.objects.create(ad="Test Takımı")
 
-        # Test kullanıcıyı takıma ekle
-        self.takim.kullanicitakim_set.create(kullanici=self.user1)
-
-        # Parça tipini oluştur ve takıma sorumlu olarak ata
-        self.parca_tipi = ParcaTipi.objects.create(ad="KANAT", sorumlu_takim=self.takim)
-
-        # Uçak tipini oluştur
-        self.ucak_tipi = UcakTipi.objects.create(kod="TB2", ad="Bayraktar TB2")
-
-        # Parça durumunu oluştur
-        self.parca_durumu = ParcaDurumu.objects.create(ad="KULLANILABILIR")
 
     def test_parca_uretimi_basariyla(self):
         """
