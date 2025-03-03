@@ -49,6 +49,10 @@ Bu proje, İHA (İnsansız Hava Aracı) üretimi yapan bir şirket için gelişt
 - 🍞 React Toastify: Bildirimler
 - 🔣 Bootstrap Icons: İkonlar
 
+### Swagger: API dokümantasyonu 
+### Birim Testleri: Kod kalitesi ve hata kontrolü için.
+
+
 ## 📋 Gereksinimler
 
 - Python 3.8+
