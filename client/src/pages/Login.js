@@ -109,41 +109,29 @@ const handleSubmit = async (values, { setSubmitting }) => {
   setLoading(true);
 
   try {
-    // Düzeltilmiş login fonksiyonu çağrısı
     const user = await login(values.username, values.password);
     console.log("Login successful, user:", user);
 
     if (user) {
-      // Kullanıcı durumunu ayarla
-      setUser(user);
+      setUser(user); // Kullanıcı durumunu ayarla
       toast.success('Giriş başarılı!');
-      navigate('/');
+      navigate('/'); // Başarılı giriş sonrası yönlendirme
     } else {
       setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
     }
   } catch (error) {
     console.error("Login error:", error);
 
-    // Hata mesajları
     if (error.response) {
       const status = error.response.status;
-
       if (status === 400) {
-        // Doğrulama hatası
-        if (error.response.data.non_field_errors) {
-          setError(error.response.data.non_field_errors[0]);
-        } else if (error.response.data.detail) {
-          setError(error.response.data.detail);
-        } else {
-          setError('Giriş bilgileri hatalı. Lütfen kontrol ediniz.');
-        }
+        setError('Giriş bilgileri hatalı. Lütfen kontrol ediniz.');
       } else if (status === 401 || status === 403) {
         setError('Erişim reddedildi. Kullanıcı adı veya şifre hatalı.');
       } else {
         setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
       }
     } else if (error.request) {
-      // Sunucuya ulaşılamadı
       setError('Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.');
     } else {
       setError('Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
@@ -153,6 +141,7 @@ const handleSubmit = async (values, { setSubmitting }) => {
     setSubmitting(false);
   }
 };
+
 
   return (
     <div style={styles.loginPage}>

@@ -1,12 +1,13 @@
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UcakTipiViewSet, UcakDurumuViewSet, UcakViewSet
+from .views import UcakTipiViewSet, UcakDurumuViewSet, UcakViewSet, MontajViewSet
 
 router = DefaultRouter()
 router.register(r'ucak-tipleri', UcakTipiViewSet)
 router.register(r'ucak-durumlari', UcakDurumuViewSet)
-router.register(r'ucaklar', UcakViewSet)
+router.register(r'ucaklar', UcakViewSet, basename='ucak')
+router.register(r'montaj', MontajViewSet, basename='montaj')
 
 urlpatterns = [
     path('', include(router.urls)),

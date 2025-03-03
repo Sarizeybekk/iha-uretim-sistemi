@@ -1,4 +1,4 @@
-// src/components/Navbar.js
+
 import React from 'react';
 import { Navbar as BootstrapNavbar, Nav, Container, Button, Dropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,11 +11,9 @@ const Navbar = ({ user, setUser }) => {
   const handleLogout = async () => {
     try {
       await logout();
-      setUser(null);
-      toast.success('Başarıyla çıkış yapıldı!');
       navigate('/login');
     } catch (error) {
-      toast.error('Çıkış yapılamadı. Lütfen tekrar deneyin.');
+      console.error('Çıkış yapılamadı:', error);
     }
   };
 
@@ -41,9 +39,7 @@ const Navbar = ({ user, setUser }) => {
             <Nav.Link as={Link} to="/inventory" className="px-3">
               <i className="bi bi-box me-1"></i> Envanter
             </Nav.Link>
-            <Nav.Link as={Link} to="/teams" className="px-3">
-              <i className="bi bi-people me-1"></i> Takımlar
-            </Nav.Link>
+
           </Nav>
           <Nav>
             {user && (

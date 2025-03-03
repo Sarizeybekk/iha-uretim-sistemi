@@ -1,111 +1,94 @@
+
 import axios from 'axios';
 
 // Backend URL'sini açıkça belirtiyoruz
-const BASE_URL = 'http://localhost:8001';
+const BASE_URL = 'http://localhost:8001/api/v1'; // ➡️ Yeni API URL
 
-// CSRF token'ı cookie'den almak için yardımcı fonksiyon
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-// CSRF token'ı güncel al
-const csrftoken = getCookie('csrftoken');
-
-// Axios instance oluşturma - doğrudan URL kullanılarak
-export const apiClient = axios.create({
+// Axios instance oluşturma
+const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    // CSRF token varsa ekle
-    ...(csrftoken ? { 'X-CSRFToken': csrftoken } : {})
+    'X-Requested-With': 'XMLHttpRequest'
   },
-  withCredentials: true, // CORS için cookie gönderimi önemli
+  withCredentials: true,
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken'
+});
+// CSRF token alma fonksiyonu
+const getCSRFToken = () => {
+  const csrfCookie = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='));
+
+  return csrfCookie ? csrfCookie.split('=')[1] : '';
+};
+apiClient.interceptors.request.use((config) => {
+  const csrfToken = getCSRFToken();
+  if (csrfToken) {
+    config.headers['X-CSRFToken'] = csrfToken;
+  }
+  return config;
 });
 
-// Her istekte CSRF token'ı kontrol et ve ekle
-apiClient.interceptors.request.use(
-  (config) => {
-    // Her istek öncesi token'ı güncel al
-    const token = getCookie('csrftoken');
-    if (token) {
-      config.headers['X-CSRFToken'] = token;
-    }
 
-    // Debug amaçlı URL loglaması
-    console.log('Making request to:', `${config.baseURL}${config.url}`);
-    console.log('Request headers:', config.headers);
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Yanıt alma sırasında hata kontrolü - Güncellenmiş hali
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Daha detaylı hata logu
-    console.error('API Error:', {
-      url: error.config?.url,
-      fullUrl: error.config?.baseURL + error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.config?.headers,
-      errorMessage: error.message
-    });
-
-    // 401 veya 403 hatası durumunda login sayfasına YÖNLENDİRMEYİ KALDIRDIK
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      console.warn('Yetkilendirme hatası tespit edildi:', error.response.status);
-      console.warn('Login sayfasına yönlendirme devre dışı bırakıldı');
-
-      // Yönlendirmeyi iptal ettik
-      // localStorage.removeItem('user');
-      // window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
 
 // API endpoints
 export const API = {
   auth: {
-    login: '/api/accounts/login/',
-    logout: '/api/accounts/logout/',
-    currentUser: '/api/accounts/kullanicilar/profile/',
-    userTeam: '/api/accounts/team/',
+    login: '/accounts/auth/login/',
+    logout: '/accounts/auth/logout/',
+    register: '/accounts/auth/register/',
+    currentUser: '/accounts/kullanicilar/me/',
+    userTeams: '/accounts/kullanicilar/takimlarim/',
+    userDetail: (id) => `/accounts/kullanicilar/${id}/`,
   },
-  // Diğer API endpointleri
   teams: {
-    list: '/api/teams/takimlar/',
-    detail: (id) => `/api/teams/takimlar/${id}/`,
-    members: (id) => `/api/teams/takimlar/${id}/uyeler/`,
-    userTeams: '/api/teams/kullanici-takimlar/',
-    addUser: (id) => `/api/teams/takimlar/${id}/uyeler/`,
-    removeUser: (teamId, userId) => `/api/teams/takimlar/${teamId}/uyeler/${userId}/`,
-    stats: '/api/teams/takimlar/istatistikler/',
-  },
-    parts: {
-        list: '/api/parts/parcalar/',  // Tüm parçaları listeleme
-        create: '/api/parts/parcalar/', // Yeni parça oluşturma
-        detail: (id) => `/api/parts/parcalar/${id}/`, // Belirli bir parçayı alma
-        update: (id) => `/api/parts/parcalar/${id}/`, // Parçayı güncelleme
-        delete: (id) => `/api/parts/parcalar/${id}/`, // Parçayı silme
-        totalCount: '/api/parts/parcalar/toplam_parca_sayisi/', // Toplam parça sayısı
-        types: '/api/parts/parca-tipleri/', // Parça tiplerini çekme
-        status: '/api/parts/parca-durumlari/', // Parça durumlarını çekme
-  },
-    inventory: {
-        list: '/api/inventory/envanter/',
-        lowStock: '/api/inventory/envanter/dusuk_stok/',
-        detail: (id) => `/api/inventory/envanter/${id}/`,
-        update: (id) => `/api/inventory/envanter/${id}/`,
-        delete: (id) => `/api/inventory/envanter/${id}/`,
-  }
+    list: '/teams/takimlar/',
+    detail: (id) => `/teams/takimlar/${id}/`,
+    members: (id) => `/teams/takimlar/${id}/uyeler/`,
+    userTeams: '/teams/kullanici-takimlar/',
+    addUser: '/teams/kullanici-takimlar/',
+    createUserTeam: '/teams/kullanici-takimlar/',
+    updateUserTeam: (id) => `/teams/kullanici-takimlar/${id}/`,
+    partialUpdateUserTeam: (id) => `/teams/kullanici-takimlar/${id}/`,
+    deleteUserTeam: (id) => `/teams/kullanici-takimlar/${id}/`,
 
+  },
+  parts: {
+    list: '/parts/parcalar/',
+    create: '/parts/parcalar/',
+    detail: (id) => `/parts/parcalar/${id}/`,
+    update: (id) => `/parts/parcalar/${id}/`,
+    partialUpdate: (id) => `/parts/parcalar/${id}/`,
+    delete: (id) => `/parts/parcalar/${id}/`,
+    recycle: (id) => `/parts/parcalar/${id}/geri_donusum/`,
+    types: '/parts/parca-tipleri/',
+    typeDetail: (id) => `/parts/parca-tipleri/${id}/`,
+    status: '/parts/parca-durumlari/',
+    statusDetail: (id) => `/parts/parca-durumlari/${id}/`,
+  },
+  inventory: {
+    list: '/inventory/envanter/',
+    create: '/inventory/envanter/',
+    detail: (id) => `/inventory/envanter/${id}/`,
+    update: (id) => `/inventory/envanter/${id}/`,
+    partialUpdate: (id) => `/inventory/envanter/${id}/`,
+    delete: (id) => `/inventory/envanter/${id}/`,
+    lowStock: '/inventory/envanter/dusuk_stok/',
+    statusByAircraftType: '/inventory/envanter/ucak_tipi_bazinda_durum/',
+  },
+  aircrafts: {
+    assemblyStatus: '/aircrafts/montaj/montaj_durumu/',
+    assemble: '/aircrafts/montaj/montaj/',
+    statuses: '/aircrafts/ucak-durumlari/',
+    statusDetail: (id) => `/aircrafts/ucak-durumlari/${id}/`,
+    types: '/aircrafts/ucak-tipleri/',
+    typeDetail: (id) => `/aircrafts/ucak-tipleri/${id}/`,
+    list: '/aircrafts/ucaklar/',
+    detail: (id) => `/aircrafts/ucaklar/${id}/`,
+   getAircraftTypes: '/aircrafts/ucak-tipleri/',
+  },
 };
 
 export default apiClient;

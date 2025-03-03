@@ -1,10 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from apps.aircrafts.managers import UcakManager
 from apps.parts.models import Parca
 from apps.teams.models import Takim
-
-
+from .managers import UcakManager
 class UcakTipi(models.Model):
     """
     Farklı uçak tiplerini/modellerini temsil eden model.
@@ -64,6 +64,15 @@ class Ucak(models.Model):
     notlar = models.TextField(blank=True, verbose_name=_("Notlar"))
     parcalar = models.ManyToManyField(Parca, through='ParcaKullanimi', related_name='kullanildigi_ucaklar')
 
+    objects = UcakManager()
+
+    @property
+    def kullanilan_parca_sayisi(self):
+        return self.parcalar.count()
+
+    @property
+    def kullanilan_parca_listesi(self):
+        return [parca.seri_no for parca in self.parcalar.all()]
     class Meta:
         db_table = 'ucaklar'
         verbose_name = _('Uçak')
@@ -130,3 +139,31 @@ class ParcaKullanimi(models.Model):
         self.parca.save()
 
         super().save(*args, **kwargs)
+
+    class UcakManager(models.Manager):
+        """
+        Uçak modeli için özel sorgu metodları içeren manager.
+        """
+
+        def tip_bazinda_ucak_sayisi(self):
+            """
+            Uçak tipi bazında üretilen uçak sayısını döndürür.
+            """
+            return self.values('ucak_tipi__kod').annotate(
+                ucak_sayisi=models.Count('id')
+            )
+
+        def son_uretilen_ucaklar(self, limit=10):
+            """
+            Son üretilen uçakları döndürür.
+            """
+            return self.order_by('-montaj_tarihi')[:limit]
+
+        def takim_bazinda_ucak_uretimi(self):
+            """
+            Takım bazında üretilen uçak sayısını döndürür.
+            """
+            return self.values('montaj_yapan_takim__ad').annotate(
+                ucak_sayisi=models.Count('id')
+            )
+

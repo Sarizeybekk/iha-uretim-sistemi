@@ -1,6 +1,7 @@
 django
 djangorestframework
 psycopg2-binary
-dotenv
+python-dotenv
 drf-yasg
+django-filter
 django-cors-headers

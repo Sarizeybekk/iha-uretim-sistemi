@@ -1,86 +1,158 @@
 from django.test import TestCase
+from django.urls import reverse
 from django.core.exceptions import ValidationError
+from rest_framework import status
+from rest_framework.test import APIClient
 from apps.accounts.models import Kullanici
-from apps.teams.models import Takim
-from apps.parts.models import Parca, ParcaTipi, ParcaDurumu
-from apps.aircrafts.models import UcakTipi  # Uçak tiplerini test etmek için
+from apps.teams.models import Takim, KullaniciTakim
+from apps.parts.models import ParcaTipi, ParcaDurumu, Parca
+from apps.aircrafts.models import UcakTipi, UcakDurumu, Ucak, ParcaKullanimi
 
-class ParcaModelTest(TestCase):
+
+class ParcaAPITestCase(TestCase):
+    """
+    Parça API uç noktaları için test sınıfı.
+    """
 
     def setUp(self):
-        """
-        Testler için gerekli nesneleri oluşturur.
-        """
-        # Test kullanıcılarını oluştur
-        self.user1 = Kullanici.objects.create_user(username="testuser1", password="password123")
-        self.user2 = Kullanici.objects.create_user(username="testuser2", password="password123")
+        self.user = Kullanici.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+        self.parca_tipi = ParcaTipi.objects.create(ad='KANAT', aciklama='Test kanat tipi')
+        self.ucak_tipi_tb2 = UcakTipi.objects.create(kod='TB2', ad='Test TB2')
+        self.ucak_tipi_tb3 = UcakTipi.objects.create(kod='TB3', ad='Test TB3')
 
+        self.parca_durumu = ParcaDurumu.objects.create(
+            ad='KULLANILABILIR',
+            aciklama='Kullanılabilir durum'
+        )
 
+        self.geri_donusum_durumu = ParcaDurumu.objects.create(
+            ad='GERI_DONUSUM',
+            aciklama='Geri dönüşüm durumu'
+        )
 
-    def test_parca_uretimi_basariyla(self):
-        """
-        Yetkili takımda bulunan bir kullanıcının parça üretimi başarılı olmalı.
-        """
-        parca = Parca(
-            seri_no="123456",
+        self.takim = Takim.objects.create(
+            ad='Kanat Takımı',
+            takim_tipi='KANAT',
+            aciklama='Test kanat takımı'
+        )
+
+        self.kullanici_takim = KullaniciTakim.objects.create(
+            kullanici=self.user,
+            takim=self.takim
+        )
+
+        self.kanat_tb2 = Parca.objects.create(
+            seri_no='TST-KNT-TB2',
             parca_tipi=self.parca_tipi,
-            ucak_tipi=self.ucak_tipi,
-            olusturan=self.user1,
-            durum=self.parca_durumu
-        )
-        parca.clean()  # Validasyon çağır
-        parca.save()  # Veritabanına kaydet
-
-        # Veritabanında 1 kayıt olup olmadığını doğrula
-        self.assertEqual(Parca.objects.count(), 1)
-
-    def test_yetkisiz_kullanici_parca_uretemez(self):
-        """
-        Kullanıcının yetkili olmadığı bir parça tipini üretmeye çalışması hata vermeli.
-        """
-        yetkisiz_parca = Parca(
-            seri_no="789012",
-            parca_tipi=self.parca_tipi,  # Test kullanıcısı bu parça tipini üretemez
-            ucak_tipi=self.ucak_tipi,
-            olusturan=self.user2,  # Yetkili olmayan kullanıcı
+            ucak_tipi=self.ucak_tipi_tb2,
+            olusturan=self.user,
             durum=self.parca_durumu
         )
 
-        # Parçanın kaydedilemeyeceğini test et
-        with self.assertRaises(ValidationError):
-            yetkisiz_parca.clean()
-
-    def test_parca_guncellenme_tarihi(self):
-        """
-        Parça güncellendiğinde `guncelleme_tarihi` değişmeli.
-        """
-        parca = Parca.objects.create(
-            seri_no="654321",
-            parca_tipi=self.parca_tipi,
-            ucak_tipi=self.ucak_tipi,
-            olusturan=self.user1,
-            durum=self.parca_durumu
+        self.ucak_tb3 = Ucak.objects.create(
+            seri_no='TST-UCK-TB3',
+            ucak_tipi=self.ucak_tipi_tb3,
+            montaj_yapan_takim=Takim.objects.create(
+                ad='Montaj Takımı',
+                takim_tipi='MONTAJ',
+                montaj_yetkisi=True
+            ),
+            durum=UcakDurumu.objects.create(
+                ad='TAMAMLANDI',
+                aciklama='Tamamlandı durum'
+            )
         )
 
-        eski_tarih = parca.guncelleme_tarihi
-        parca.durum = ParcaDurumu.objects.create(ad="KUSURLU")  # Durumu değiştir
-        parca.save()  # Güncelle
+        self.client = APIClient()
 
-        self.assertNotEqual(parca.guncelleme_tarihi, eski_tarih)
-
-    def test_parcalar_filtrelenebilir(self):
+    def test_parca_uyumsuzlugu(self):
         """
-        Parçalar belirli parça tipine, uçak tipine ve duruma göre filtrelenebilmeli.
+        TB2 kanadı TB3 uçağına takılmaya çalışıldığında hata dönmeli.
         """
-        # Örnek 3 farklı parça oluştur
-        Parca.objects.create(seri_no="1001", parca_tipi=self.parca_tipi, ucak_tipi=self.ucak_tipi, olusturan=self.user1, durum=self.parca_durumu)
-        Parca.objects.create(seri_no="1002", parca_tipi=self.parca_tipi, ucak_tipi=self.ucak_tipi, olusturan=self.user1, durum=self.parca_durumu)
-        Parca.objects.create(seri_no="1003", parca_tipi=self.parca_tipi, ucak_tipi=self.ucak_tipi, olusturan=self.user1, durum=ParcaDurumu.objects.create(ad="KUSURLU"))
+        # Uyumsuz parça kullanımı oluşturmaya çalış
+        parca_kullanimi = ParcaKullanimi(
+            parca=self.kanat_tb2,
+            ucak=self.ucak_tb3
+        )
 
-        # Kullanılabilir parça sayısını test et
-        kullanilabilir_parcalar = Parca.objects.filter(durum__ad="KULLANILABILIR")
-        self.assertEqual(kullanilabilir_parcalar.count(), 2)
+        # Hata fırlatma
+        with self.assertRaises(ValidationError) as context:
+            parca_kullanimi.clean()
 
-        # Kusurlu parça sayısını test et
-        kusurlu_parcalar = Parca.objects.filter(durum__ad="KUSURLU")
-        self.assertEqual(kusurlu_parcalar.count(), 1)
+        self.assertIn("uyumlu değil", str(context.exception))
+
+    def test_parca_listesi_alma(self):
+        """
+        Parça listesini almanın test edilmesi.
+        """
+        self.client.force_authenticate(user=self.user)
+        url = reverse('parca-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['seri_no'], 'TST-KNT-TB2')
+
+    def test_parca_olusturma(self):
+        """
+        Yeni parça oluşturmanın test edilmesi.
+        """
+        self.client.force_authenticate(user=self.user)
+        url = reverse('parca-list')
+        data = {
+            'seri_no': 'TST-KNT-002',
+            'parca_tipi': self.parca_tipi.id,
+            'ucak_tipi': self.ucak_tipi_tb2.id,
+            'durum': self.parca_durumu.id,
+            'notlar': 'Test parçası 2'
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['seri_no'], 'TST-KNT-002')
+        self.assertTrue(Parca.objects.filter(seri_no='TST-KNT-002').exists())
+
+    def test_parca_detayi_alma(self):
+        """
+        Parça detayını almanın test edilmesi.
+        """
+        self.client.force_authenticate(user=self.user)
+        url = reverse('parca-detail', args=[self.kanat_tb2.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['seri_no'], 'TST-KNT-TB2')
+
+    def test_parca_guncelleme(self):
+        """
+        Parça güncellemenin test edilmesi.
+        """
+        self.client.force_authenticate(user=self.user)
+        url = reverse('parca-detail', args=[self.kanat_tb2.id])
+        data = {
+            'seri_no': 'TST-KNT-001-UPD',
+            'parca_tipi': self.parca_tipi.id,
+            'ucak_tipi': self.ucak_tipi_tb2.id,
+            'durum': self.parca_durumu.id,
+            'notlar': 'Güncellenmiş test parçası'
+        }
+        response = self.client.put(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.kanat_tb2.refresh_from_db()
+        self.assertEqual(self.kanat_tb2.seri_no, 'TST-KNT-001-UPD')
+
+    def test_parca_geri_donusum(self):
+        """
+        Parçayı geri dönüşüme göndermenin test edilmesi.
+        """
+        self.client.force_authenticate(user=self.user)
+        url = reverse('parca-geri-donusum', args=[self.kanat_tb2.id])
+        data = {
+            'parca_id': self.kanat_tb2.id,
+            'neden': 'Test için geri dönüşüme gönderildi'
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.kanat_tb2.refresh_from_db()
+        self.assertEqual(self.kanat_tb2.durum.ad, 'GERI_DONUSUM')

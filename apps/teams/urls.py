@@ -4,7 +4,7 @@ from .views import TakimViewSet, KullaniciTakimViewSet
 
 router = DefaultRouter()
 router.register(r'takimlar', TakimViewSet)
-router.register(r'kullanici-takimlar', KullaniciTakimViewSet)
+router.register(r'kullanici-takimlar', KullaniciTakimViewSet, basename='kullanici-takim')
 
 urlpatterns = [
     path('', include(router.urls)),

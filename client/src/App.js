@@ -1,14 +1,13 @@
-// src/App.js
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import PartsManagement from './pages/PartsManagement';
-import AircraftAssembly from './pages/AircraftAssembly';
+import PartsPage from './pages/PartsPage';
+import MontajPage from "./pages/MontajPage";
 import InventoryList from './pages/InventoryList';
-import TeamManagement from './pages/TeamManagement';
 import Navbar from './components/Navbar';
-import { getCurrentUser } from './services/authService';
+import { login,getCurrentUser } from './services/authService';
 import './App.css';
 
 function App() {
@@ -60,13 +59,13 @@ function App() {
         
         <Route path="/parts" element={
           <ProtectedRoute>
-            <PartsManagement user={user} />
+            <PartsPage user={user} />
           </ProtectedRoute>
         } />
         
         <Route path="/assembly" element={
           <ProtectedRoute>
-            <AircraftAssembly user={user} />
+            <MontajPage user={user} />
           </ProtectedRoute>
         } />
         
@@ -76,11 +75,7 @@ function App() {
           </ProtectedRoute>
         } />
         
-        <Route path="/teams" element={
-          <ProtectedRoute>
-            <TeamManagement />
-          </ProtectedRoute>
-        } />
+
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

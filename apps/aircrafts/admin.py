@@ -1,44 +1,53 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 from .models import UcakTipi, UcakDurumu, Ucak, ParcaKullanimi
+
 
 @admin.register(UcakTipi)
 class UcakTipiAdmin(admin.ModelAdmin):
-    """Uçak Tipi modeli için admin sınıfı."""
-    list_display = ('kod', 'ad')
-    search_fields = ('kod', 'ad')
+    list_display = ('ad', 'kod', 'aciklama')
+    search_fields = ('ad', 'kod', 'aciklama')
 
 
 @admin.register(UcakDurumu)
 class UcakDurumuAdmin(admin.ModelAdmin):
-    """Uçak Durumu modeli için admin sınıfı."""
-    list_display = ('ad', 'aciklama')
-    search_fields = ('ad',)
+    list_display = ('ad', 'get_ad_display', 'aciklama')
+    search_fields = ('ad', 'aciklama')
 
 
 class ParcaKullanimiInline(admin.TabularInline):
-    """Uçak detay sayfasında parça kullanımlarını göstermek için inline admin sınıfı."""
     model = ParcaKullanimi
-    extra = 1
-    autocomplete_fields = ['parca']
+    extra = 0
+    readonly_fields = ('kullanim_tarihi',)
+    autocomplete_fields = ('parca',)
 
 
 @admin.register(Ucak)
 class UcakAdmin(admin.ModelAdmin):
-    """Uçak modeli için admin sınıfı."""
-    list_display = ('seri_no', 'ucak_tipi', 'montaj_yapan_takim', 'durum', 'montaj_tarihi')
-    list_filter = ('ucak_tipi', 'durum', 'montaj_yapan_takim')
-    search_fields = ('seri_no',)
-    readonly_fields = ('montaj_tarihi', 'guncelleme_tarihi')
+    list_display = ('seri_no', 'ucak_tipi', 'durum', 'montaj_yapan_takim', 'montaj_tarihi')
+    list_filter = ('ucak_tipi', 'durum', 'montaj_yapan_takim', 'montaj_tarihi')
+    search_fields = ('seri_no', 'notlar')
     date_hierarchy = 'montaj_tarihi'
+    readonly_fields = ('montaj_tarihi', 'guncelleme_tarihi')
+    fieldsets = (
+        (None, {
+            'fields': ('seri_no', 'ucak_tipi', 'durum', 'montaj_yapan_takim')
+        }),
+        (_('Tarihler'), {
+            'fields': ('montaj_tarihi', 'guncelleme_tarihi')
+        }),
+        (_('Diğer Bilgiler'), {
+            'fields': ('notlar',)
+        }),
+    )
     inlines = [ParcaKullanimiInline]
 
 
 @admin.register(ParcaKullanimi)
 class ParcaKullanimiAdmin(admin.ModelAdmin):
-    """Parça Kullanımı modeli için admin sınıfı."""
     list_display = ('parca', 'ucak', 'kullanim_tarihi', 'aktif')
     list_filter = ('aktif', 'kullanim_tarihi')
     search_fields = ('parca__seri_no', 'ucak__seri_no')
-    autocomplete_fields = ['parca', 'ucak']
-    readonly_fields = ('kullanim_tarihi',)
     date_hierarchy = 'kullanim_tarihi'
+    readonly_fields = ('kullanim_tarihi',)
+    autocomplete_fields = ('parca', 'ucak')

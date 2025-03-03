@@ -7,13 +7,13 @@ class Kullanici(AbstractUser):
     """
     Personel bilgilerini tutan geliştirilmiş kullanıcı modeli.
     """
-    # Çakışmaları önlemek için related_name özellikleri eklendi
+    #  related_name eklendi,cakısmaları onlemek için
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name=_('groups'),
         blank=True,
         help_text=_('The groups this user belongs to.'),
-        related_name='kullanici_set',  # Değiştirildi
+        related_name='kullanici_set',
         related_query_name='kullanici',
     )
     user_permissions = models.ManyToManyField(
@@ -21,7 +21,7 @@ class Kullanici(AbstractUser):
         verbose_name=_('user permissions'),
         blank=True,
         help_text=_('Specific permissions for this user.'),
-        related_name='kullanici_set',  # Değiştirildi
+        related_name='kullanici_set',
         related_query_name='kullanici',
     )
 

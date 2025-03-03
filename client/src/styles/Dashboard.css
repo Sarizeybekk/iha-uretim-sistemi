@@ -1,482 +1,650 @@
-/* src/styles/Dashboard.css */
-.dashboard-container {
-  background-color: #f8f9fa;
-  min-height: 100vh;
+/* Dashboard.css */
+:root {
+  --primary: #2f855a;
+  --primary-light: #48bb78;
+  --secondary: #4299e1;
+  --danger: #e53e3e;
+  --warning: #ed8936;
+  --success: #38a169;
+  --info: #3182ce;
+  --gray-100: #f7fafc;
+  --gray-200: #edf2f7;
+  --gray-300: #e2e8f0;
+  --gray-400: #cbd5e0;
+  --gray-500: #a0aec0;
+  --gray-600: #718096;
+  --gray-700: #4a5568;
+  --gray-800: #2d3748;
+  --gray-900: #1a202c;
+  --border-radius: 4px;
+  --box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
-/* Header styling */
-.dashboard-header {
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid #e9ecef;
-  padding-bottom: 1rem;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-/* Loading screen styling */
-.dashboard-loading {
-  min-height: 100vh;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--gray-800);
+  background-color: var(--gray-100);
+}
+
+.dashboard {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header styles */
+.header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  background-color: #f8f9fa;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
+  margin-bottom: 20px;
 }
 
-.loading-content {
-  text-align: center;
-  padding: 2rem;
+.header-title h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 4px;
+}
+
+.header-title p {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box input {
+  padding: 8px 12px;
+  padding-right: 30px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
   background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  max-width: 300px;
+  font-size: 14px;
 }
 
-.loading-logo {
-  margin-bottom: 1.5rem;
+.search-box svg {
+  position: absolute;
+  right: 10px;
+  color: var(--gray-500);
 }
 
-.loading-progress {
-  margin-top: 1rem;
-  width: 100%;
-}
-
-.loading-bar {
-  height: 4px;
-}
-
-/* Dashboard navigation */
-.dashboard-nav {
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.dashboard-nav .nav-link {
-  color: #495057;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-size: 14px;
   font-weight: 500;
-  padding: 0.75rem 1rem;
-  border: none;
-  margin-right: 0.5rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.dashboard-nav .nav-link.active {
-  color: #0d6efd;
-  border-bottom: 2px solid #0d6efd !important;
-  background-color: transparent;
-}
-
-.dashboard-nav .nav-link:hover:not(.active) {
-  color: #0d6efd;
-  background-color: rgba(13, 110, 253, 0.1);
-}
-
-/* Card styling */
-.dashboard-card {
-  border: none;
-  border-radius: 0.5rem;
-  transition: transform 0.3s, box-shadow 0.3s;
-  overflow: hidden;
-}
-
-.dashboard-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
-}
-
-.dashboard-card .card-header {
-  padding: 1rem 1.25rem;
+.btn-outline {
   background-color: white;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+}
+
+.btn-outline:hover {
+  background-color: var(--gray-100);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  border: 1px solid var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-light);
+}
+
+.btn-success {
+  background-color: var(--success);
+  border: 1px solid var(--success);
+  color: white;
+}
+
+.btn-info {
+  background-color: var(--info);
+  border: 1px solid var(--info);
+  color: white;
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.caret {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.dropdown {
+  position: relative;
+}
+
+/* Alert styles */
+.alert {
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+}
+
+.alert-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+/* Tabs styles */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--gray-300);
+  margin-bottom: 24px;
+}
+
+.tab {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
   font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.dashboard-card .card-body {
-  padding: 1.25rem;
+.tab:hover {
+  color: var(--gray-800);
 }
 
-.dashboard-card .card-footer {
+.tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Dashboard stats */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
   background-color: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 0.75rem 1.25rem;
-}
-
-/* Stats cards */
-.dashboard-stat-card {
-  border: none;
-  border-radius: 0.5rem;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s, box-shadow 0.3s;
+  border-radius: var(--border-radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--box-shadow);
   position: relative;
   overflow: hidden;
-}
-
-.dashboard-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.card-footer-indicator {
-  height: 4px;
-  width: 100%;
-  position: absolute;
-  bottom: 0;
-  left: 0;
 }
 
 .stat-icon {
-  background-color: rgba(13, 110, 253, 0.1);
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
-.stat-icon-text {
-  font-size: 24px;
+.stat-icon.package {
+  background-color: rgba(66, 153, 225, 0.1);
+  color: var(--secondary);
 }
 
-.stat-icon.text-success {
-  background-color: rgba(25, 135, 84, 0.1);
+.stat-icon.plane {
+  background-color: rgba(72, 187, 120, 0.1);
+  color: var(--primary);
 }
 
-.stat-icon.text-warning {
-  background-color: rgba(255, 193, 7, 0.1);
+.stat-icon.alert {
+  background-color: rgba(237, 137, 54, 0.1);
+  color: var(--warning);
 }
 
-.stat-icon.text-info {
-  background-color: rgba(13, 202, 240, 0.1);
+.stat-icon.chart {
+  background-color: rgba(49, 130, 206, 0.1);
+  color: var(--info);
 }
 
-.stat-label {
-  font-size: 0.875rem;
-  color: #6c757d;
-  margin-bottom: 0.25rem;
+.stat-title {
+  font-size: 14px;
+  color: var(--gray-600);
+  margin-bottom: 4px;
 }
 
 .stat-value {
+  font-size: 24px;
   font-weight: 600;
-  color: #343a40;
-  font-size: 1.5rem;
-  margin-bottom: 0;
+  color: var(--gray-800);
 }
 
-.stat-value-sm {
-  font-weight: 600;
-  color: #343a40;
-  font-size: 1.125rem;
-}
-
-/* Team card styling */
-.team-name {
-  font-weight: 600;
-  color: #343a40;
-}
-
-.team-avatar-circle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: #0d6efd;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  font-weight: bold;
-}
-
-.team-progress {
-  height: 6px;
-  border-radius: 3px;
-}
-
-.section-title {
-  font-weight: 600;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e9ecef;
-  color: #343a40;
-}
-
-/* Activity timeline */
-.activity-timeline {
-  margin-top: 1rem;
-}
-
-.activity-item {
-  display: flex;
-  margin-bottom: 1rem;
-  position: relative;
-}
-
-.activity-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: #f8f9fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 0.75rem;
-  flex-shrink: 0;
-}
-
-.activity-text {
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.activity-time {
-  font-size: 0.75rem;
-  color: #6c757d;
-}
-
-/* Inventory styling */
-.inventory-overview {
-  margin-bottom: 1.5rem;
-}
-
-.inventory-stat {
-  border-radius: 8px;
-  transition: transform 0.3s;
-}
-
-.inventory-stat:hover {
-  transform: translateY(-3px);
-}
-
-.inventory-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.part-types-container {
-  max-height: 200px;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.part-type-item {
-  margin-bottom: 0.75rem;
-  padding: 0.5rem;
-  border-radius: 8px;
-  transition: background-color 0.3s;
-}
-
-.part-type-item:hover {
-  background-color: #f8f9fa;
-}
-
-.part-type-indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 0.75rem;
-}
-
-.type-name {
-  font-weight: 500;
-  color: #495057;
-}
-
-.part-count-badge {
-  font-weight: 500;
-}
-
-.stock-status-badge {
-  font-size: 0.75rem;
-}
-
-.inventory-progress {
-  height: 6px;
-  border-radius: 3px;
-}
-
-/* Aircraft styling */
-.aircraft-icon {
-  font-size: 1.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.aircraft-progress {
-  height: 6px;
-  border-radius: 3px;
-}
-
-.aircraft-grid {
-  margin-top: 1rem;
-}
-
-.aircraft-type-card {
-  transition: transform 0.3s;
-}
-
-.aircraft-type-card:hover {
-  transform: translateY(-3px);
-}
-
-.aircraft-type-inner {
-  border-radius: 8px;
-  background-color: #fff;
-  height: 100%;
-  transition: box-shadow 0.3s;
-}
-
-.aircraft-type-card:hover .aircraft-type-inner {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.aircraft-type-icon {
-  font-size: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.aircraft-count {
-  font-weight: 500;
-}
-
-.aircraft-type-progress {
+.stat-progress {
+  margin-top: 12px;
   height: 4px;
+  background-color: var(--gray-200);
   border-radius: 2px;
+  overflow: hidden;
 }
 
-/* Quick links styling */
-.quick-links-card {
-  border-radius: 0.5rem;
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary);
 }
 
-.quick-links {
+/* Dashboard content */
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr 2fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-200);
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 8px;
 }
 
-.quick-link {
-  border-width: 1.5px;
+.card-header h3 {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.card-body {
+  padding: 16px;
+}
+
+.card-footer {
+  padding: 12px 16px;
+  background-color: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  font-size: 12px;
+  color: var(--gray-600);
+  text-align: right;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 12px;
   font-weight: 500;
-  transition: all 0.3s;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
+  text-transform: uppercase;
+}
+
+.badge-success {
+  background-color: rgba(56, 161, 105, 0.1);
+  color: var(--success);
+}
+
+.badge-primary {
+  background-color: rgba(49, 130, 206, 0.1);
+  color: var(--info);
+}
+
+.badge-danger {
+  background-color: rgba(229, 62, 62, 0.1);
+  color: var(--danger);
+}
+
+/* Team card */
+.team-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  min-width: 120px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.team-empty svg {
+  color: var(--gray-400);
+  margin-bottom: 16px;
+}
+
+.team-empty p {
+  margin-bottom: 12px;
+  color: var(--gray-600);
+}
+
+/* Inventory card */
+.inventory-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.inventory-stat {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  background-color: var(--gray-50);
 }
 
-.quick-link:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.quick-link-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-/* Notification styling */
-.notification-btn {
-  position: relative;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background-color: #dc3545;
-  color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
+.inventory-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
-  font-weight: bold;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-bottom: 8px;
 }
 
-.notification-menu {
-  width: 300px;
-  padding: 0;
+.inventory-icon.package {
+  background-color: rgba(72, 187, 120, 0.1);
+  color: var(--primary);
 }
 
-.notification-menu .dropdown-header {
-  padding: 0.75rem 1rem;
+.inventory-icon.parts {
+  background-color: rgba(237, 137, 54, 0.1);
+  color: var(--warning);
+}
+
+.inventory-label {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+
+.inventory-value {
+  font-size: 20px;
   font-weight: 600;
-  border-bottom: 1px solid #e9ecef;
+  color: var(--gray-800);
 }
 
-.notification-item {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f8f9fa;
+.part-types h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--gray-700);
 }
 
-/* Dashboard actions */
-.dashboard-actions {
+.stock-status {
+  margin-bottom: 16px;
+}
+
+.stock-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.stock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.stock-dot.red {
+  background-color: var(--danger);
+}
+
+.stock-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+/* Aircraft card */
+.aircraft-stats {
+  display: flex;
+  margin-bottom: 24px;
+}
+
+.aircraft-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  background-color: var(--gray-50);
+}
+
+.aircraft-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-bottom: 8px;
+}
+
+.aircraft-icon.plane {
+  background-color: rgba(72, 187, 120, 0.1);
+  color: var(--primary);
+}
+
+.aircraft-label {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+
+.aircraft-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.aircraft-types h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--gray-700);
+}
+
+.aircraft-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.aircraft-type {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  background-color: var(--gray-50);
+  text-align: center;
+}
+
+.aircraft-type-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 8px;
+  color: var(--secondary);
+}
+
+.aircraft-type-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* Quick access section */
+.quick-access {
+  margin-top: 30px;
+}
+
+.quick-access-heading {
+  margin-bottom: 16px;
+}
+
+.quick-access-checkbox {
   display: flex;
   align-items: center;
 }
 
-.search-bar {
-  width: 250px;
+.quick-access-checkbox input {
+  margin-right: 8px;
 }
 
-/* Responsive styles */
-@media (max-width: 992px) {
-  .quick-link {
-    min-width: 100px;
+.quick-access-checkbox label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.quick-access-items {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+}
+
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: var(--border-radius);
+  background-color: white;
+  box-shadow: var(--box-shadow);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.quick-item svg {
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.quick-item span {
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Utility classes */
+.rotated {
+  transform: rotate(45deg);
+}
+
+.small-plane {
+  transform: scale(0.8);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .search-bar {
-    width: 180px;
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-access-items {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .dashboard-header {
+  .header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .dashboard-actions {
-    margin-top: 1rem;
+  .header-actions {
+    margin-top: 16px;
     width: 100%;
-    justify-content: space-between;
+    flex-wrap: wrap;
   }
 
-  .search-bar {
-    width: 60%;
+  .search-box {
+    flex: 1;
   }
 
-  .quick-link {
-    min-width: calc(50% - 0.375rem);
-    flex: none;
+  .dashboard-stats {
+    grid-template-columns: 1fr;
   }
 
-  .stat-value {
-    font-size: 1.25rem;
-  }
-
-  .dashboard-card .card-body {
-    padding: 1rem;
+  .quick-access-items {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 576px) {
-  .dashboard-nav .nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+@media (max-width: 480px) {
+  .quick-access-items {
+    grid-template-columns: 1fr;
   }
 
-  .quick-link {
-    min-width: 100%;
+  .tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
   }
+
+
+
+
+
+
 }

@@ -1,65 +1,102 @@
 from django.test import TestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
 from apps.accounts.models import Kullanici
 from apps.teams.models import Takim, KullaniciTakim
 
-class TakimModelTestCase(TestCase):
+
+class TakimAPITestCase(TestCase):
+    """
+    Takım API uç noktaları için test sınıfı.
+    """
 
     def setUp(self):
-        """
-        Testler için örnek kullanıcı ve takım oluşturuluyor.
-        """
-        self.kullanici1 = Kullanici.objects.create_user(username="user1", password="password123")
-        self.kullanici2 = Kullanici.objects.create_user(username="user2", password="password456")
 
-        self.takim1 = Takim.objects.create(ad="Kanat Üretim", aciklama="Kanat bölümü üretim takımı")
-        self.takim2 = Takim.objects.create(ad="Gövde Montaj", aciklama="Gövde montaj takımı", montaj_yetkisi=True)
+        self.user = Kullanici.objects.create_user(
+            username='takimci',
+            email='takim@example.com',
+            password='takim123'
+        )
 
-    def test_takim_olusturuldu(self):
-        """
-        Bir takım başarıyla oluşturulmalı.
-        """
-        self.assertEqual(Takim.objects.count(), 2)
-        self.assertEqual(self.takim1.ad, "Kanat Üretim")
-        self.assertFalse(self.takim1.montaj_yetkisi)  # Varsayılan olarak False olmalı
+        self.admin_user = Kullanici.objects.create_user(
+            username='admin',
+            email='admin@example.com',
+            password='admin123',
+            is_staff=True
+        )
 
-    def test_takim_str_representation(self):
-        """
-        Takımın __str__ metodunun doğru çalıştığını test eder.
-        """
-        self.assertEqual(str(self.takim1), "Kanat Üretim")
-        self.assertEqual(str(self.takim2), "Gövde Montaj")
+        self.kanat_takim = Takim.objects.create(
+            ad='Kanat Takımı',
+            takim_tipi='KANAT',
+            aciklama='Test kanat takımı'
+        )
 
-    def test_kullanici_takima_ekleme(self):
-        """
-        Bir kullanıcı bir takıma eklenebilmeli.
-        """
-        KullaniciTakim.objects.create(kullanici=self.kullanici1, takim=self.takim1)
-        self.assertEqual(KullaniciTakim.objects.count(), 1)
-        self.assertEqual(self.kullanici1.takimlar.count(), 1)
-        self.assertEqual(self.kullanici1.takimlar.first(), self.takim1)
+        self.montaj_takim = Takim.objects.create(
+            ad='Montaj Takımı',
+            takim_tipi='MONTAJ',
+            aciklama='Test montaj takımı',
+            montaj_yetkisi=True
+        )
 
-    def test_kullanici_ayni_takima_tekrar_eklenemez(self):
-        """
-        Aynı kullanıcı aynı takıma iki kez eklenemez.
-        """
-        KullaniciTakim.objects.create(kullanici=self.kullanici1, takim=self.takim1)
+        self.kullanici_takim = KullaniciTakim.objects.create(
+            kullanici=self.user,
+            takim=self.kanat_takim
+        )
 
-        with self.assertRaises(Exception):  # unique_together kontrolü devreye girmeli
-            KullaniciTakim.objects.create(kullanici=self.kullanici1, takim=self.takim1)
+        self.client = APIClient()
 
-    def test_kullanici_takim_iliskisi(self):
+    def test_takim_listesi_alma(self):
         """
-        Kullanıcı-takım ilişkisi ManyToMany ilişki üzerinden doğru çalışıyor mu?
+        Takım listesini almanın test edilmesi.
         """
-        KullaniciTakim.objects.create(kullanici=self.kullanici1, takim=self.takim1)
-        KullaniciTakim.objects.create(kullanici=self.kullanici1, takim=self.takim2)
 
-        self.assertEqual(self.kullanici1.takimlar.count(), 2)
-        self.assertIn(self.takim1, self.kullanici1.takimlar.all())
-        self.assertIn(self.takim2, self.kullanici1.takimlar.all())
+        self.client.force_authenticate(user=self.user)
 
-    def test_takimda_olmayan_kullanici(self):
+        url = reverse('takim-list')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 2)
+
+        takim_adlari = [t['ad'] for t in response.data['results']]
+        self.assertIn('Kanat Takımı', takim_adlari)
+        self.assertIn('Montaj Takımı', takim_adlari)
+
+    def test_takim_uyelerini_alma(self):
         """
-        Kullanıcı herhangi bir takıma atanmadığında takım sayısı sıfır olmalı.
+        Takım üyelerini almanın test edilmesi.
         """
-        self.assertEqual(self.kullanici2.takimlar.count(), 0)
+        self.client.force_authenticate(user=self.user)
+        url = reverse('takim-uyeler', args=[self.kanat_takim.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['kullanici_detay']['username'], 'takimci')
+
+    def test_kullanici_takim_iliskisi_ekleme(self):
+        """
+        Kullanıcı-takım ilişkisi eklemenin test edilmesi.
+        """
+        self.client.force_authenticate(user=self.admin_user)
+
+        new_user = Kullanici.objects.create_user(
+            username='newuser',
+            email='new@example.com',
+            password='new123'
+        )
+
+        url = reverse('kullanici-takim-list')
+        data = {
+            'kullanici': new_user.id,
+            'takim': self.montaj_takim.id
+        }
+        response = self.client.post(url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertTrue(KullaniciTakim.objects.filter(
+            kullanici=new_user,
+            takim=self.montaj_takim
+        ).exists())

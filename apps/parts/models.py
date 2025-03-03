@@ -2,9 +2,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from apps.accounts.models import Kullanici
+from .managers import ParcaManager
 from apps.teams.models import Takim
-
-
 class ParcaTipi(models.Model):
     """
     Farklı parça tiplerini temsil eden model.
@@ -16,15 +15,15 @@ class ParcaTipi(models.Model):
         ('AVIYONIK', _('Aviyonik')),
     )
 
-    ad = models.CharField(max_length=50, choices=TIP_SECENEKLERI, verbose_name=_("Parça Adı"))
+    ad = models.CharField(max_length=50, choices=TIP_SECENEKLERI, unique=True, verbose_name=_("Parça Adı"))
     aciklama = models.TextField(blank=True, verbose_name=_("Açıklama"))
     sorumlu_takim = models.ForeignKey(
         Takim,
         on_delete=models.PROTECT,
-        related_name='sorumlu_parcalar',
+        null=True,
+        blank=True,
         verbose_name=_("Sorumlu Takım")
     )
-
     class Meta:
         db_table = 'parca_tipleri'
         verbose_name = _('Parça Tipi')
@@ -32,6 +31,13 @@ class ParcaTipi(models.Model):
 
     def __str__(self):
         return self.get_ad_display()
+
+    @property
+    def sorumlu_takim_tipi(self):
+        """
+        Bu parça tipinden sorumlu takım tipini döndürür.
+        """
+        return self.ad
 
 
 class ParcaDurumu(models.Model):
@@ -74,6 +80,8 @@ class Parca(models.Model):
     guncelleme_tarihi = models.DateTimeField(auto_now=True, verbose_name=_("Güncelleme Tarihi"))
     notlar = models.TextField(blank=True, verbose_name=_("Notlar"))
 
+
+    objects = ParcaManager()
     class Meta:
         db_table = 'parcalar'
         verbose_name = _('Parça')
@@ -89,15 +97,31 @@ class Parca(models.Model):
         """
         Parçaların yalnızca sorumlu takım tarafından üretilebilmesini doğrular.
         """
+        from apps.teams.models import KullaniciTakim
 
-        kullanici_takimlari = Takim.objects.filter(kullanicitakim__kullanici=self.olusturan)
+        # Kullanıcının bağlı olduğu takımları bul
+        kullanici_takimlari = KullaniciTakim.objects.filter(kullanici=self.olusturan).select_related('takim')
 
+        uygun_takimlar = [kt.takim for kt in kullanici_takimlari if
+                          (kt.takim.takim_tipi == self.parca_tipi.ad) or
+                          (kt.takim.montaj_yetkisi)]
 
-        if not kullanici_takimlari.filter(sorumlu_parcalar=self.parca_tipi).exists():
+        if not uygun_takimlar:
             raise ValidationError(
                 _("{} kullanıcısı {} tipi parça üretemez.").format(
                     self.olusturan.username, self.parca_tipi
                 )
             )
 
-        super().clean()
+    def geri_donusume_gonder(self):
+        if self.durum.ad == 'KULLANILIYOR':
+            raise ValidationError(_("Kullanımda olan parça geri dönüşüme gönderilemez."))
+        try:
+            geri_donusum_durumu = ParcaDurumu.objects.get(ad='GERI_DONUSUM')
+            self.durum = geri_donusum_durumu
+            self.save()
+            return True
+        except ParcaDurumu.DoesNotExist:
+            return False
+
+

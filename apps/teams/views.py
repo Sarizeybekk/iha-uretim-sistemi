@@ -1,31 +1,46 @@
-from rest_framework import viewsets, permissions, status
-from rest_framework.response import Response
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
+from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.translation import gettext as _
+
 from .models import Takim, KullaniciTakim
 from .serializers import TakimSerializer, KullaniciTakimSerializer
 
-class TakimViewSet(viewsets.ModelViewSet):
+
+class TakimViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Takımlar için salt okunur uç nokta.
+    """
     queryset = Takim.objects.all()
     serializer_class = TakimSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['takim_tipi', 'montaj_yetkisi']
+    search_fields = ['ad', 'aciklama']
 
     @action(detail=True, methods=['get'])
     def uyeler(self, request, pk=None):
+        """
+        Belirli bir takımın üyelerini döndürür.
+        """
         takim = self.get_object()
-        uyeler = takim.uyeler.all()
-        return Response({"uyeler": [user.username for user in uyeler]})
+        kullanici_takimlar = KullaniciTakim.objects.filter(takim=takim)
+        serializer = KullaniciTakimSerializer(kullanici_takimlar, many=True)
+        return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
-    def istatistikler(self, request):
-        toplam_takim = Takim.objects.count()
-        toplam_kullanici = KullaniciTakim.objects.count()
-        return Response({
-            "toplam_takim": toplam_takim,
-            "toplam_kullanici": toplam_kullanici
-        })
 
 class KullaniciTakimViewSet(viewsets.ModelViewSet):
-    queryset = KullaniciTakim.objects.all()
+    """
+    Kullanıcı-Takım ilişkileri için CRUD işlemleri.
+    """
     serializer_class = KullaniciTakimSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['kullanici', 'takim']
+    search_fields = ['kullanici__username', 'takim__ad']
+
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return KullaniciTakim.objects.all()
+        return KullaniciTakim.objects.filter(kullanici=self.request.user)

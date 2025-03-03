@@ -1,12 +1,11 @@
-// inventoryService.js
-import apiClient from './apiConfig';
 
-// Servisin içindeki tüm fonksiyonları içeren bir nesne
+import apiClient, { API } from './apiConfig';
+
 const inventoryService = {
-  // Tüm envanter öğelerini getir
+  // Get all inventory items
   getInventory: async () => {
     try {
-      const response = await apiClient.get('/api/inventory/envanter/');
+      const response = await apiClient.get(API.inventory.list);
       return response.data;
     } catch (error) {
       console.error('Error fetching inventory:', error);
@@ -14,10 +13,10 @@ const inventoryService = {
     }
   },
 
-  // Düşük stok öğelerini getir
+  // Get low stock items
   getLowStockItems: async () => {
     try {
-      const response = await apiClient.get('/api/inventory/envanter/dusuk_stok/');
+      const response = await apiClient.get(API.inventory.lowStock);
       return response.data;
     } catch (error) {
       console.error('Error fetching low stock items:', error);
@@ -25,10 +24,21 @@ const inventoryService = {
     }
   },
 
-  // Belirli bir envanter öğesini getir
+  // Get status grouped by aircraft type
+  getStatusByAircraftType: async () => {
+    try {
+      const response = await apiClient.get(API.inventory.statusByAircraftType);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching status by aircraft type:', error);
+      throw error;
+    }
+  },
+
+  // Get specific inventory item
   getInventoryItem: async (id) => {
     try {
-      const response = await apiClient.get(`/api/inventory/envanter/${id}/`);
+      const response = await apiClient.get(API.inventory.detail(id));
       return response.data;
     } catch (error) {
       console.error(`Error fetching inventory item with ID ${id}:`, error);
@@ -36,10 +46,21 @@ const inventoryService = {
     }
   },
 
-  // Envanter öğesini güncelle (kısmi güncelleme)
+  // Create a new inventory item
+  createInventoryItem: async (data) => {
+    try {
+      const response = await apiClient.post(API.inventory.create, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating inventory item:', error);
+      throw error;
+    }
+  },
+
+  // Update inventory item (partial update)
   updateInventoryItem: async (id, data) => {
     try {
-      const response = await apiClient.patch(`/api/inventory/envanter/${id}/`, data);
+      const response = await apiClient.patch(API.inventory.partialUpdate(id), data);
       return response.data;
     } catch (error) {
       console.error(`Error updating inventory item with ID ${id}:`, error);
@@ -47,10 +68,10 @@ const inventoryService = {
     }
   },
 
-  // Envanter öğesini sil
+  // Delete inventory item
   deleteInventoryItem: async (id) => {
     try {
-      await apiClient.delete(`/api/inventory/envanter/${id}/`);
+      await apiClient.delete(API.inventory.delete(id));
       return true;
     } catch (error) {
       console.error(`Error deleting inventory item with ID ${id}:`, error);
@@ -59,5 +80,5 @@ const inventoryService = {
   }
 };
 
-// Varsayılan olarak tüm servis nesnesini dışa aktar
+
 export default inventoryService;

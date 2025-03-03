@@ -1,88 +1,58 @@
-from django.db import models
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from apps.inventory.models import Envanter
-from apps.parts.models import ParcaTipi
-from apps.aircrafts.models import UcakTipi
-from .serializers import EnvanterSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.translation import gettext as _
+
+from .models import Envanter,UcakTipi
+from .serializers import EnvanterSerializer, EnvanterDurumuSerializer
+from .services import EnvanterService
 
 
 class EnvanterViewSet(viewsets.ModelViewSet):
-
+    """
+    Envanter kayıtları
+    """
     queryset = Envanter.objects.all()
     serializer_class = EnvanterSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['parca_tipi', 'ucak_tipi']
+    search_fields = ['parca_tipi__ad', 'ucak_tipi__kod']
+    ordering_fields = ['mevcut_adet', 'son_guncelleme']
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
     def dusuk_stok(self, request):
-
-        dusuk_stok_envanter = Envanter.objects.filter(mevcut_adet__lt=models.F('minimum_esik'))
-        serializer = self.get_serializer(dusuk_stok_envanter, many=True)
+        """
+        Düşük stok seviyesindeki envanter kayıtlarını döndürür.
+        """
+        envanter = Envanter.objects.dusuk_stok_alarmlari()
+        serializer = self.get_serializer(envanter, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['post'])
-    def eksik_parca_kontrol(self, request):
+    @action(detail=False, methods=['get'])
+    def ucak_tipi_bazinda_durum(self, request):
+        """
+        Uçak tipi bazında envanter durumunu döndürür.
+        """
+        ucak_tipi_kodu = request.query_params.get('ucak_tipi', None)
 
-        ucak_tipi_id = request.data.get('ucak_tipi_id')
+        durum = EnvanterService.ucak_tipi_bazinda_durum(ucak_tipi_kodu)
 
-        if not ucak_tipi_id:
+        if not durum:
             return Response(
-                {"hata": "ucak_tipi_id parametresi gereklidir"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            ucak_tipi = UcakTipi.objects.get(id=ucak_tipi_id)
-        except UcakTipi.DoesNotExist:
-            return Response(
-                {"hata": f"ID'si {ucak_tipi_id} olan uçak tipi bulunamadı"},
+                {"error": _("Belirtilen uçak tipi bulunamadı.")},
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        if isinstance(durum, list):
+            return Response(durum)
 
-        parca_tipleri = ParcaTipi.objects.all()
-
-        eksik_parcalar = []
-        dusuk_stok_parcalar = []
-
-        for parca_tipi in parca_tipleri:
-
-            try:
-                envanter = Envanter.objects.get(parca_tipi=parca_tipi, ucak_tipi=ucak_tipi)
-
-                if envanter.mevcut_adet == 0:
-                    eksik_parcalar.append({
-                        "parca_tipi_id": parca_tipi.id,
-                        "parca_tipi_adi": str(parca_tipi),
-                        "mevcut_adet": 0
-                    })
-
-                elif envanter.dusuk_stok:
-                    dusuk_stok_parcalar.append({
-                        "parca_tipi_id": parca_tipi.id,
-                        "parca_tipi_adi": str(parca_tipi),
-                        "mevcut_adet": envanter.mevcut_adet,
-                        "minimum_esik": envanter.minimum_esik
-                    })
-            except Envanter.DoesNotExist:
-
-                eksik_parcalar.append({
-                    "parca_tipi_id": parca_tipi.id,
-                    "parca_tipi_adi": str(parca_tipi),
-                    "mevcut_adet": 0
-                })
-
-
-        sonuc = {
-            "ucak_tipi": {
-                "id": ucak_tipi.id,
-                "kod": ucak_tipi.kod,
-                "ad": ucak_tipi.ad
-            },
-            "eksik_parcalar": eksik_parcalar,
-            "dusuk_stok_parcalar": dusuk_stok_parcalar,
-            "durum": "eksik" if eksik_parcalar else "tamam"
-        }
-
-        return Response(sonuc)
+        serializer = EnvanterDurumuSerializer(durum)
+        return Response(serializer.data)

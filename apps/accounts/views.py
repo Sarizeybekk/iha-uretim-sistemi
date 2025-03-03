@@ -1,64 +1,93 @@
-
-from rest_framework import status, viewsets
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
-from django.contrib.auth import authenticate, login, logout
-from .models import Kullanici
-from .serializers import KullaniciSerializer, LoginSerializer
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth import login, logout
+from django.utils.translation import gettext as _
+from apps.accounts.models import Kullanici
+from apps.accounts.serializers import (
+    KullaniciSerializer, LoginSerializer, KullaniciOlusturSerializer
+)
 
-class KullaniciViewSet(viewsets.ModelViewSet):
+
+class KullaniciViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Kullanıcılar için salt okunur uç nokta.
+    """
     queryset = Kullanici.objects.all()
     serializer_class = KullaniciSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_permissions(self):
-        if self.action == 'create':  # Register
-            return [AllowAny()]
-        return super().get_permissions()
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['is_active', 'is_staff']
+    search_fields = ['username', 'first_name', 'last_name', 'email']
 
     @action(detail=False, methods=['get'])
-    def profile(self, request):
+    def me(self, request):
+        """
+        Giriş yapmış kullanıcının bilgilerini döndürür.
+        """
         serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def takimlarim(self, request):
+        """
+        Giriş yapmış kullanıcının takımlarını döndürür.
+        """
+        from apps.teams.models import KullaniciTakim
+        from apps.teams.serializers import KullaniciTakimSerializer
+
+        kullanici_takimlar = KullaniciTakim.objects.filter(kullanici=request.user)
+        serializer = KullaniciTakimSerializer(kullanici_takimlar, many=True)
         return Response(serializer.data)
 
 
 class LoginView(APIView):
-    permission_classes = [AllowAny]
-
-    @swagger_auto_schema(
-        request_body=LoginSerializer,
-        responses={
-            200: openapi.Response('Başarılı giriş', KullaniciSerializer),
-            400: 'Geçersiz girdi',
-            401: 'Kimlik doğrulama başarısız'
-        },
-        operation_description="Kullanıcı girişi yapma"
-    )
+    """
+    Kullanıcı girişi için API görünümü.
+    """
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            user = authenticate(request, username=username, password=password)
+            user = serializer.validated_data['user']
+            login(request, user)
 
-            if user is not None:
-                login(request, user)
-                return Response({
-                    'message': 'Giriş başarılı',
-                    'user': KullaniciSerializer(user).data
-                })
-            return Response({'error': 'Geçersiz kullanıcı adı veya şifre'}, status=status.HTTP_401_UNAUTHORIZED)
+            user_serializer = KullaniciSerializer(user)
+            return Response(user_serializer.data)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    """
+    Kullanıcı çıkışı için API görünümü.
+    """
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         logout(request)
-        return Response({'message': 'Başarıyla çıkış yapıldı'}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RegisterView(APIView):
+    """
+    Yeni kullanıcı kaydı için API görünümü.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = KullaniciOlusturSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+
+            # Otomatik giriş yap
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            login(request, user)
+
+            user_serializer = KullaniciSerializer(user)
+            return Response(user_serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

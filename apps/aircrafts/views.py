@@ -1,146 +1,185 @@
-
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from django.db import transaction
-from apps.aircrafts.models import UcakTipi, UcakDurumu, Ucak, ParcaKullanimi
-from apps.parts.models import Parca, ParcaDurumu
-from apps.teams.models import Takim
-from .serializers import UcakTipiSerializer, UcakDurumuSerializer, UcakSerializer, ParcaKullanimiSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.translation import gettext as _
+from apps.parts.models import Parca
+from .models import UcakTipi, UcakDurumu, Ucak, ParcaKullanimi
+from .serializers import (
+    UcakTipiSerializer, UcakDurumuSerializer, UcakSerializer,
+    ParcaKullanimiSerializer, UcakMontajSerializer
+)
+from .services import UcakMontajService
 
 
-class UcakTipiViewSet(viewsets.ModelViewSet):
-
+class UcakTipiViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Uçak tipleri için salt okunur uç nokta.
+    """
     queryset = UcakTipi.objects.all()
     serializer_class = UcakTipiSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['kod', 'ad', 'aciklama']
 
 
-class UcakDurumuViewSet(viewsets.ModelViewSet):
-
+class UcakDurumuViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Uçak durumları için salt okunur uç nokta.
+    """
     queryset = UcakDurumu.objects.all()
     serializer_class = UcakDurumuSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['ad', 'aciklama']
 
 
-class UcakViewSet(viewsets.ModelViewSet):
-
-    queryset = Ucak.objects.all()
+class UcakViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Uçaklar için salt okunur uç nokta.
+    """
     serializer_class = UcakSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ucak_tipi', 'durum', 'montaj_yapan_takim']
+    search_fields = ['seri_no', 'notlar']
+    ordering_fields = ['montaj_tarihi', 'seri_no']
+    ordering = ['-montaj_tarihi']
 
-    def perform_create(self, serializer):
+    def get_queryset(self):
+        """
+        Kullanıcının izinlerine göre görüntüleyebileceği uçakları filtreler.
+        """
+        user = self.request.user
 
-        kullanici = self.request.user
-        montaj_yapan_takim = get_object_or_404(Takim, id=self.request.data.get('montaj_yapan_takim'))
+        # Montaj takımı tüm uçakları görebilir
+        if user.takimlar.filter(montaj_yetkisi=True).exists():
+            return Ucak.objects.all()
 
-        # Montaj yapan takımın yetkisi var mı kontrol et
-        if not montaj_yapan_takim.montaj_yetkisi:
+        # Diğer takımlar sadece kendi ürettikleri parçaların olduğu uçakları görebilir
+        kullanici_takimlari = user.takimlar.values_list('id', flat=True)
+
+        return Ucak.objects.filter(
+            # Takımın ürettiği parçalardan biri kullanılmış uçak
+            parcalar__parca__ureticisi__id__in=kullanici_takimlari
+        ).distinct()
+
+
+class MontajViewSet(viewsets.ViewSet):
+    """
+    Uçak montaj işlemleri için özel viewset.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def montaj(self, request):
+        """
+        Yeni bir uçak montajı yapar.
+        """
+        print("Alınan veri:", request.data)
+
+        # Yetki kontrolü
+        if not UcakMontajService.montaj_yapabilir_mi(request.user):
             return Response(
-                {"error": "Sadece montaj yetkisi olan takımlar uçak oluşturabilir."},
+                {"error": _("Montaj işlemi için yetkiniz bulunmuyor.")},
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        serializer = UcakMontajSerializer(data=request.data)
 
-        kullanici_takimlari = Takim.objects.filter(kullanicitakim__kullanici=kullanici)
-
-
-        if not kullanici_takimlari.filter(id=montaj_yapan_takim.id).exists():
-            return Response(
-                {"error": f"{kullanici.username} kullanıcısı {montaj_yapan_takim.ad} takımında değil."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-
-        montajda_durumu = get_object_or_404(UcakDurumu, ad='MONTAJ')
-
-        serializer.save(durum=montajda_durumu)
-
-    @action(detail=True, methods=['post'])
-    def monte_et(self, request, pk=None):
-
-        ucak = self.get_object()
-        parca_idleri = request.data.get('parca_idleri', [])
-
-
-        parcalar = []
-        for parca_id in parca_idleri:
+        if serializer.is_valid():
             try:
-                parca = Parca.objects.get(id=parca_id)
-                parcalar.append(parca)
-            except Parca.DoesNotExist:
+                validated_data = serializer.validated_data
+
+                # Eksik parça kontrolü
+                eksik_parcalar = []
+                if not validated_data.get('kanat_parca_id'):
+                    eksik_parcalar.append('Kanat')
+                if not validated_data.get('govde_parca_id'):
+                    eksik_parcalar.append('Gövde')
+                if not validated_data.get('kuyruk_parca_id'):
+                    eksik_parcalar.append('Kuyruk')
+                if not validated_data.get('aviyonik_parca_id'):
+                    eksik_parcalar.append('Aviyonik')
+
+                # Eğer eksik parça varsa montajı engelle
+                if eksik_parcalar:
+                    return Response(
+                        {"error": _("Montaj yapılamadı. Eksik parçalar: ") + ', '.join(eksik_parcalar)},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # Servis için parça listesini oluştur
+                parcalar = [
+                    validated_data['kanat_parca_id'],
+                    validated_data['govde_parca_id'],
+                    validated_data['kuyruk_parca_id'],
+                    validated_data['aviyonik_parca_id'],
+                ]
+
+                # Servis için veri yapısı
+                service_data = {
+                    'ucak_tipi': validated_data['ucak_tipi'],
+                    'seri_no': validated_data['seri_no'],
+                    'parcalar': parcalar,
+                    'notlar': validated_data.get('notlar', '')
+                }
+
+                print("Servise gönderilen veri:", service_data)
+
+                # Montaj işlemi
+                ucak = UcakMontajService.ucak_montaj(service_data, request.user)
+
                 return Response(
-                    {"error": f"ID: {parca_id} olan parça bulunamadı."},
-                    status=status.HTTP_404_NOT_FOUND
+                    UcakSerializer(ucak).data,
+                    status=status.HTTP_201_CREATED
                 )
 
-
-        for parca in parcalar:
-            if parca.durum.ad != 'KULLANILABILIR':
+            except Exception as e:
+                print("Hata:", str(e))
                 return Response(
-                    {"error": f"{parca.seri_no} parçası kullanılabilir durumda değil."},
+                    {"error": str(e)},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+        print("Serializer hataları:", serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        for parca in parcalar:
-            if parca.ucak_tipi.id != ucak.ucak_tipi.id:
-                return Response(
-                    {"error": f"{parca.seri_no} parçası {ucak.ucak_tipi.kod} ile uyumlu değil."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+    @action(detail=False, methods=['get'])
+    def montaj_durumu(self, request):
+        """
+        Montaj için uygun parçaların durumunu ve envanter seviyelerini döndürür.
+        """
+        # Tüm uçak tipleri için montaj durumu
+        durumlar = []
 
+        # Uçak tiplerini al
+        ucak_tipleri = UcakTipi.objects.all()
 
-        parca_tipleri = set(parca.parca_tipi.ad for parca in parcalar)
-        gerekli_parca_tipleri = {'KANAT', 'GOVDE', 'KUYRUK', 'AVIYONIK'}
+        for ucak_tipi in ucak_tipleri:
+            eksik_parcalar = []
+            gerekli_parcalar = ['KANAT', 'GOVDE', 'KUYRUK', 'AVIYONIK']
 
-        if not gerekli_parca_tipleri.issubset(parca_tipleri):
-            eksik_parcalar = gerekli_parca_tipleri - parca_tipleri
-            return Response(
-                {"error": f"Eksik parça tipleri: {', '.join(eksik_parcalar)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            # Her parça tipi için kontrol et
+            for parca_tipi in gerekli_parcalar:
+                #  Kullanılabilir parça var mı kontrol et
+                kullanilabilir_parca = Parca.objects.filter(
+                    parca_tipi__ad=parca_tipi,
+                    durum__ad='KULLANILABILIR',
+                    ucak_tipi=ucak_tipi
+                ).exists()
 
+                #  Eğer yoksa eksik olarak listeye ekle
+                if not kullanilabilir_parca:
+                    eksik_parcalar.append(parca_tipi)
 
-        with transaction.atomic():
+            montaj_icin_yeterli = len(eksik_parcalar) == 0
 
-            kullaniliyor_durumu = get_object_or_404(ParcaDurumu, ad='KULLANILIYOR')
+            #  Durumu listeye ekle
+            durumlar.append({
+                'ucak_tipi': ucak_tipi.kod,
+                'montaj_icin_yeterli': montaj_icin_yeterli,
+                'eksik_parcalar': eksik_parcalar
+            })
 
-
-            for parca in parcalar:
-
-                parca.durum = kullaniliyor_durumu
-                parca.save()
-
-
-                ParcaKullanimi.objects.create(
-                    parca=parca,
-                    ucak=ucak,
-                    aktif=True
-                )
-
-
-            tamamlandi_durumu = get_object_or_404(UcakDurumu, ad='TAMAMLANDI')
-            ucak.durum = tamamlandi_durumu
-            ucak.save()
-
-        return Response({"message": f"{ucak.seri_no} uçağının montajı tamamlandı."})
-
-    @action(detail=True, methods=['post'])
-    def teslim_et(self, request, pk=None):
-
-        ucak = self.get_object()
-
-        if ucak.durum.ad != 'TAMAMLANDI':
-            return Response(
-                {"error": "Sadece tamamlanmış uçaklar teslim edilebilir."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-        teslim_edildi_durumu = get_object_or_404(UcakDurumu, ad='TESLIM_EDILDI')
-        ucak.durum = teslim_edildi_durumu
-        ucak.save()
-
-        return Response({"message": f"{ucak.seri_no} uçağı teslim edildi."})
+        return Response(durumlar, status=status.HTTP_200_OK)

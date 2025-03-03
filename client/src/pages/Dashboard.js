@@ -3,18 +3,24 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Alert, Spinner, Badge, ProgressBar, Nav, Button, Dropdown } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { getCurrentUser } from '../services/authService';
-import { getInventory, getAircraft, getUserTeams } from '../services/apiService';
+import { getInventory, getAircraft, getUserTeams ,getPartsCount,getLowStockCount,getUserTeamsInfo,getMissingParts} from '../services/dashService';
 import { toast } from 'react-toastify';
 
 import '../styles/Dashboard.css';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
+  const [userTeamsInfo, setUserTeamsInfo] = useState([]);
+  const [teamName, setTeamName] = useState('');
+  const [teamType, setTeamType] = useState('');
   const [inventory, setInventory] = useState([]);
   const [aircraft, setAircraft] = useState([]);
   const [userTeam, setUserTeam] = useState(null);
+  const [missingParts, setMissingParts] = useState([]);
+  const [lowStockCount, setLowStockCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [partsCount, setPartsCount] = useState(0);
   const [lowStockItems, setLowStockItems] = useState([]);
   const [dashboardStats, setDashboardStats] = useState({
     totalParts: 0,
@@ -23,75 +29,93 @@ const Dashboard = () => {
     completionRate: 0
   });
   const [activeTab, setActiveTab] = useState('overview');
+// 🟢 Yeni state: Tüm takımların bilgisi
+const [teams, setTeams] = useState([]);  // Tüm takımlar
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Simulate loading for better UX
-        await new Promise(resolve => setTimeout(resolve, 600));
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      console.log('📡 Veri çekme işlemi başladı...');
 
-        // Get current user data including team
-        const userData = await getCurrentUser();
-        setUser(userData);
+      // 🟢 600ms bekleme (simülasyon için)
+      await new Promise(resolve => setTimeout(resolve, 600));
 
-        // Get inventory and aircraft data
-        const [inventoryData, aircraftData, userTeamsData] = await Promise.all([
-          getInventory(),
-          getAircraft(),
-          getUserTeams()
-        ]);
+      // 🟢 API isteklerini aynı anda yap
+      const [
+        inventoryData,
+        aircraftData,
+        userTeamsData,
+        partsData,
+        lowStockData,
+        teamsInfo,
+        missingPartsData  // 🆕 Eksik parçalar verisi
+      ] = await Promise.all([
+        getInventory(),
+        getAircraft(),
+        getUserTeams(),
+        getPartsCount(),
+        getLowStockCount(),
+        getUserTeamsInfo(),
+        getMissingParts()  // 🆕 Yeni API çağrısı
+      ]);
 
-        setInventory(inventoryData);
-        setAircraft(aircraftData);
-        setLowStockItems(inventoryData.filter(item => item.miktar < 5) || []);
+      // 🟢 Verileri state'e ata
+      setInventory(inventoryData);
+      setAircraft(aircraftData);
+      setPartsCount(partsData);
+      setLowStockCount(lowStockData);
+      setUserTeamsInfo(teamsInfo);
+      setMissingParts(missingPartsData);  // 🆕 Eksik parçaları state'e ata
 
-        // Calculate dashboard stats
-        const totalParts = inventoryData.reduce((sum, item) => sum + item.miktar, 0);
-        const lowStockCount = inventoryData.filter(item => item.miktar < 5).length;
+      console.log('🟢 Eksik parçalar başarıyla alındı:', missingPartsData);
+      console.log('🟢 Takım bilgileri başarıyla alındı:', teamsInfo);
 
-        // Calculate theoretical completion rate (how many complete aircraft can be built)
-        let completionRate = 0;
+      // 🟢 Tüm takımları sakla
+      const allTeams = teamsInfo.map(team => ({
+        name: team.takim_detay?.ad || 'Bilinmeyen Takım',
+        type: team.takim_detay?.takim_tipi_adi || 'Bilinmeyen Tip',
+        members: team.takim_detay?.personel_sayisi || 0,
+        description: team.takim_detay?.aciklama || 'Açıklama yok'
+      }));
+      setTeams(allTeams);
 
-        if (inventoryData.length > 0) {
-          // Simplified calculation for completion rate
-          const partTypeCounts = {
-            'kanat': inventoryData.filter(i => i.parca_tipi?.name?.toLowerCase() === 'kanat').reduce((sum, i) => sum + i.miktar, 0),
-            'gövde': inventoryData.filter(i => i.parca_tipi?.name?.toLowerCase() === 'gövde').reduce((sum, i) => sum + i.miktar, 0),
-            'kuyruk': inventoryData.filter(i => i.parca_tipi?.name?.toLowerCase() === 'kuyruk').reduce((sum, i) => sum + i.miktar, 0),
-            'aviyonik': inventoryData.filter(i => i.parca_tipi?.name?.toLowerCase() === 'aviyonik').reduce((sum, i) => sum + i.miktar, 0)
-          };
+      // 🟢 Dashboard istatistiklerini hesapla
+      const totalParts = inventoryData.reduce((sum, item) => sum + item.miktar, 0);
+      const maxAircraftCapacity = 20;
+      const totalProducedAircraft = aircraftData.length;
+      const completionRate = Math.min(100, Math.round((totalProducedAircraft / maxAircraftCapacity) * 100));
 
-          const minPartCount = Math.min(...Object.values(partTypeCounts));
-          const potentialAircraft = minPartCount;
-          const builtAircraft = aircraftData.length;
+      setDashboardStats({
+        totalParts,
+        totalAircraft: totalProducedAircraft,
+        lowStockItems: lowStockData,
+        completionRate
+      });
 
-          completionRate = potentialAircraft > 0
-            ? Math.min(100, Math.round((builtAircraft / potentialAircraft) * 100))
-            : 100;
-        }
-
-        setDashboardStats({
-          totalParts,
-          totalAircraft: aircraftData.length,
-          lowStockItems: lowStockCount,
-          completionRate
-        });
-
-        // Set user's team if available
-        if (userTeamsData && userTeamsData.length > 0) {
-          setUserTeam(userTeamsData[0]);
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setError('Veriler yüklenirken bir hata oluştu.');
-        toast.error('Veriler yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+      // 🟢 Kullanıcının takımını belirle
+      if (userTeamsData && userTeamsData.length > 0) {
+        setUserTeam(userTeamsData[0]);
       }
-    };
 
-    fetchData();
-  }, []);
+    } catch (error) {
+      console.error('🔴 Hata: Veriler alınırken bir sorun oluştu:', error);
+      setError('Veriler yüklenirken bir hata oluştu.');
+      toast.error('Veriler yüklenirken bir hata oluştu.');
+    } finally {
+      setLoading(false);
+      console.log('✅ Veri çekme işlemi tamamlandı!');
+    }
+  };
+
+  fetchData();
+}, []);
+
+
+
+
+
+
+
 
   // Filter inventory by user's team type (if applicable)
   const getTeamStats = () => {
@@ -262,7 +286,7 @@ const Dashboard = () => {
                 </div>
                 <div className="ms-3">
                   <h6 className="stat-label">Toplam Parça</h6>
-                  <h3 className="stat-value">{dashboardStats.totalParts}</h3>
+                  <h3 className="stat-value">{partsCount}</h3>
                 </div>
               </Card.Body>
               <div className="card-footer-indicator bg-primary"></div>
@@ -292,7 +316,7 @@ const Dashboard = () => {
                 </div>
                 <div className="ms-3">
                   <h6 className="stat-label">Düşük Stok</h6>
-                  <h3 className="stat-value">{dashboardStats.lowStockItems}</h3>
+                  <h3 className="stat-value">{lowStockCount}</h3>
                 </div>
               </Card.Body>
               <div className="card-footer-indicator bg-warning"></div>
@@ -306,7 +330,7 @@ const Dashboard = () => {
                   <span className="stat-icon-text">📊</span>
                 </div>
                 <div className="ms-3">
-                  <h6 className="stat-label">Tamamlanma Oranı</h6>
+                  <h6 className="stat-label">Üretim Durumu</h6>
                   <h3 className="stat-value">{dashboardStats.completionRate}%</h3>
                 </div>
               </Card.Body>
@@ -318,283 +342,236 @@ const Dashboard = () => {
         {/* Main Content Area */}
         <Row className="main-content">
           {/* User Team Info Card */}
-          <Col md={6} lg={4} className="mb-4">
-            <Card className="dashboard-card h-100 shadow-sm">
-              <Card.Header className="d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center">
-                  <span className="me-2">👥</span>
-                  <h5 className="mb-0">Takım Bilgileri</h5>
+         <Col md={6} lg={4} className="mb-4">
+  <Card className="dashboard-card h-100 shadow-sm border-0 rounded-4 bg-white">
+    <Card.Header className="d-flex align-items-center justify-content-between bg-light border-bottom-0 rounded-top-4">
+      <div className="d-flex align-items-center">
+        <span className="me-2 text-primary fs-4">👥</span>
+        <h5 className="mb-0 text-dark fw-bold">Takım Bilgileri</h5>
+      </div>
+      {teams.length > 0 && (
+        <Badge bg="success" pill className="text-white shadow-sm">Aktif</Badge>
+      )}
+    </Card.Header>
+    <Card.Body className="p-4 bg-white">
+      {teams.length > 0 ? (
+        teams.map((team, index) => (
+          <div key={index} className="team-info mb-4 p-3 bg-light shadow-sm rounded-3">
+            <div className="team-header d-flex align-items-center mb-3">
+              <div className="team-avatar me-3">
+                <div className="team-avatar-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{ width: '50px', height: '50px', fontSize: '20px' }}>
+                  {team.type.charAt(0).toUpperCase() || "?"}
                 </div>
-                {userTeam && (
-                  <Badge bg="primary" pill>Aktif</Badge>
-                )}
-              </Card.Header>
-              <Card.Body>
-                {userTeam ? (
-                  <>
-                    <div className="team-info mb-4">
-                      <div className="team-header d-flex align-items-center mb-3">
-                        <div className="team-avatar me-3">
-                          <div className="team-avatar-circle">
-                            {userTeam?.takim?.takim_tipi?.charAt(0)?.toUpperCase() || "?"}
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="team-name mb-1">{userTeam.takim.name}</h4>
-                          <Badge bg="info">{userTeam.takim.takim_tipi}</Badge>
-                        </div>
-                      </div>
+              </div>
+              <div>
+                <h4 className="team-name mb-1 text-dark fw-bold">{team.name}</h4>
+                <Badge bg="info" className="text-white shadow-sm">{team.type}</Badge>
+              </div>
+            </div>
 
-                      <div className="team-stats mt-4">
-                        <div className="team-stat-item">
-                          <div className="d-flex justify-content-between align-items-center mb-1">
-                            <div className="stat-label">Üretilen Parça Sayısı</div>
-                            <div className="stat-value-sm">{teamStats.count}</div>
-                          </div>
-                          <ProgressBar
-                            now={Math.min(100, teamStats.count / 5)}
-                            variant="success"
-                            className="team-progress"
-                          />
-                        </div>
+            <p className="text-muted mb-2" style={{ fontStyle: 'italic', fontSize: '14px' }}>
+              {team.description || 'Açıklama yok.'}
+            </p>
 
-                        <div className="team-stat-item mt-3">
-                          <div className="d-flex justify-content-between align-items-center mb-1">
-                            <div className="stat-label">Parça Çeşidi</div>
-                            <div className="stat-value-sm">{teamStats.total}</div>
-                          </div>
-                          <ProgressBar
-                            now={Math.min(100, teamStats.total * 25)}
-                            variant="info"
-                            className="team-progress"
-                          />
-                        </div>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="section-title mb-0 text-dark fw-semibold">Üye Sayısı:</h6>
+              <Badge bg="secondary" className="text-white shadow-sm">{team.members} Kişi</Badge>
+            </div>
 
-                        <div className="team-activity mt-4">
-                          <h6 className="section-title">Son Aktiviteler</h6>
-                          <div className="activity-timeline">
-                            <div className="activity-item">
-                              <div className="activity-icon">
-                                <span>✅</span>
-                              </div>
-                              <div className="activity-content">
-                                <div className="activity-text">Kanat parçası üretildi</div>
-                                <div className="activity-time">Bugün, 10:23</div>
-                              </div>
-                            </div>
-                            <div className="activity-item">
-                              <div className="activity-icon">
-                                <span>🕒</span>
-                              </div>
-                              <div className="activity-content">
-                                <div className="activity-text">Toplantı planlandı</div>
-                                <div className="activity-time">Dün, 15:30</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+            <div className="progress mb-3 shadow-sm" style={{ height: '8px', borderRadius: '5px' }}>
+              <div
+                className="progress-bar bg-success"
+                role="progressbar"
+                style={{ width: `${Math.min(100, team.members * 10)}%` }}
+                aria-valuenow={team.members}
+                aria-valuemin="0"
+                aria-valuemax="100"
+              />
+            </div>
 
-                    <div className="d-grid gap-2">
-                      <Link to="/parts" className="btn btn-primary">
-                        Parça Yönetimi
-                      </Link>
-                    </div>
-                  </>
-                ) : (
-                  <Alert variant="warning" className="mb-0 d-flex align-items-start">
-                    <span className="me-2">ℹ️</span>
-                    <div>
-                      <p className="mb-2 fw-bold">Herhangi bir takıma atanmamışsınız.</p>
-                      <p className="mb-3">Takım ataması için lütfen yöneticinizle iletişime geçin.</p>
-                      <Button variant="outline-primary" size="sm">
-                        Takım Talep Et
-                      </Button>
-                    </div>
-                  </Alert>
-                )}
-              </Card.Body>
-              {userTeam && (
-                <Card.Footer className="text-center">
-                  <small className="text-muted">
-                    Son güncelleme: {new Date().toLocaleDateString()}
-                  </small>
-                </Card.Footer>
-              )}
-            </Card>
-          </Col>
+            <div className="d-grid gap-2">
+              <Link to="/parts" className="btn btn-outline-primary btn-sm rounded-pill shadow-sm">
+                🛠️ Parça Yönetimi
+              </Link>
+            </div>
+
+            {index < teams.length - 1 && <hr className="my-4 text-secondary" />} {/* Takımlar arasında çizgi */}
+          </div>
+        ))
+      ) : (
+        <Alert variant="warning" className="mb-0 d-flex align-items-start shadow-sm rounded-3">
+          <span className="me-2">ℹ️</span>
+          <div>
+            <p className="mb-2 fw-bold text-dark">Herhangi bir takıma atanmamışsınız.</p>
+            <p className="mb-3 text-muted">Takım ataması için lütfen yöneticinizle iletişime geçin.</p>
+            <Button variant="outline-primary" size="sm" className="rounded-pill shadow-sm">
+              Takım Talep Et
+            </Button>
+          </div>
+        </Alert>
+      )}
+    </Card.Body>
+    {teams.length > 0 && (
+      <Card.Footer className="text-center bg-light rounded-bottom-4 border-top-0">
+        <small className="text-muted">
+          Son güncelleme: {new Date().toLocaleDateString()}
+        </small>
+      </Card.Footer>
+    )}
+  </Card>
+</Col>
 
           {/* Inventory Summary Card */}
-          <Col md={6} lg={4} className="mb-4">
-            <Card className="dashboard-card h-100 shadow-sm">
-              <Card.Header className="d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center">
-                  <span className="me-2">🏭</span>
-                  <h5 className="mb-0">Envanter Özeti</h5>
-                </div>
-                <Badge bg={dashboardStats.lowStockItems > 0 ? "warning" : "success"} pill>
-                  {dashboardStats.lowStockItems > 0 ? `${dashboardStats.lowStockItems} Düşük Stok` : "Stok Normal"}
-                </Badge>
-              </Card.Header>
-              <Card.Body>
-                <div className="inventory-summary mb-4">
-                  <Row className="mb-4 inventory-overview">
-                    <Col>
-                      <div className="text-center p-3 rounded bg-light inventory-stat">
-                        <div className="inventory-icon">
-                          <span>🔧</span>
-                        </div>
-                        <div className="stat-label">Toplam Parça</div>
-                        <div className="stat-value text-primary">
-                          {inventory.reduce((sum, item) => sum + item.miktar, 0)}
-                        </div>
-                      </div>
-                    </Col>
-                    <Col>
-                      <div className="text-center p-3 rounded bg-light inventory-stat">
-                        <div className="inventory-icon">
-                          <span>🚀</span>
-                        </div>
-                        <div className="stat-label">Parça Çeşidi</div>
-                        <div className="stat-value text-primary">{inventory.length}</div>
-                      </div>
-                    </Col>
-                  </Row>
+         <Col md={6} lg={4} className="mb-4">
+  <Card className="dashboard-card h-100 shadow-sm border-0 rounded-4 bg-white">
+    <Card.Header className="d-flex align-items-center justify-content-between bg-light border-bottom-0 rounded-top-4">
+      <div className="d-flex align-items-center">
+        <span className="me-2 text-primary fs-4">📦</span>
+        <h5 className="mb-0 text-dark fw-bold">Eksik Parçalar</h5>
+      </div>
+    </Card.Header>
 
-                  <div className="part-types mt-4">
-                    <h6 className="section-title d-flex justify-content-between align-items-center">
-                      <span>Parça Türleri</span>
-                      <Badge bg="light" text="dark" className="stock-status-badge">Stok Durumu</Badge>
-                    </h6>
+    <Card.Body className="p-4 bg-white">
+      {missingParts.length > 0 ? (
+        <ul className="list-group mb-4">
+          {missingParts.map((item, index) => (
+            <li
+              key={index}
+              className="list-group-item d-flex justify-content-between align-items-center bg-light shadow-sm rounded-3 mb-2"
+            >
+              <span className="fw-bold text-danger">
+                {item.parca_tipi_adi} ({item.ucak_tipi_kodu})
+              </span>
+              <Badge bg="danger" className="shadow-sm">
+                {item.mevcut_adet} / {item.minimum_esik} Adet
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted text-center mb-4">Eksik parça yok.</p>
+      )}
 
-                    <div className="part-types-container">
-                      {['Kanat', 'Gövde', 'Kuyruk', 'Aviyonik'].map(type => {
-                        const typeItems = inventory.filter(item =>
-                          item.parca_tipi && item.parca_tipi.name &&
-                          item.parca_tipi.name.toLowerCase() === type.toLowerCase()
-                        );
-                        const count = typeItems.reduce((sum, item) => sum + item.miktar, 0);
-                        const maxParts = 50; // Theoretical maximum for visualization
-                        const percentage = Math.min(100, (count / maxParts) * 100);
-                        const statusVariant = count < 5 ? 'danger' : count < 15 ? 'warning' : 'success';
+      {/* 🟢 Profesyonel Görünümlü Envanteri Görüntüle Butonu */}
+      <Link
+        to="/inventory"
+        className="btn btn-info text-white w-100 rounded-3 shadow-sm"
+        style={{ fontWeight: 'bold' }}
+      >
+        📋 Envanteri Görüntüle
+      </Link>
+    </Card.Body>
 
-                        return (
-                          <div key={type} className="part-type-item mb-3">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <div className="d-flex align-items-center">
-                                <span className={`part-type-indicator bg-${statusVariant}`}></span>
-                                <span className="type-name">{type}</span>
-                              </div>
-                              <Badge bg={statusVariant} className="part-count-badge">
-                                {count} adet
-                              </Badge>
-                            </div>
-                            <ProgressBar
-                              now={percentage}
-                              variant={statusVariant}
-                              className="mt-2 inventory-progress"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+    <Card.Footer className="text-center bg-light rounded-bottom-4 border-top-0">
+      <small className="text-muted">
+        Son güncelleme: {new Date().toLocaleDateString()}
+      </small>
+    </Card.Footer>
+  </Card>
+</Col>
 
-                <div className="d-grid gap-2">
-                  <Link to="/inventory" className="btn btn-info">
-                    Envanteri Görüntüle
-                  </Link>
-                </div>
-              </Card.Body>
-              <Card.Footer className="text-center">
-                <small className="text-muted">
-                  Son güncelleme: {new Date().toLocaleDateString()}
-                </small>
-              </Card.Footer>
-            </Card>
-          </Col>
+
+
+
+
 
           {/* Aircraft Summary Card */}
           <Col md={6} lg={4} className="mb-4">
-            <Card className="dashboard-card h-100 shadow-sm">
-              <Card.Header className="d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center">
-                  <span className="me-2">✈️</span>
-                  <h5 className="mb-0">Üretilen Uçaklar</h5>
-                </div>
-                <Badge bg="success" pill>Toplam: {aircraft.length}</Badge>
-              </Card.Header>
-              <Card.Body>
-                <div className="aircraft-summary mb-4">
-                  <div className="total-aircraft text-center p-3 rounded bg-light mb-4">
-                    <div className="aircraft-icon mb-2">
-                      <span>✈️</span>
-                    </div>
-                    <div className="stat-label">Toplam Üretilen Uçak</div>
-                    <div className="stat-value text-success">{aircraft.length}</div>
-                    <ProgressBar
-                      variant="success"
-                      now={Math.min(100, aircraft.length * 10)}
-                      className="mt-2 aircraft-progress"
-                    />
-                  </div>
+  <Card className="dashboard-card h-100 shadow-sm border-0 rounded-4 bg-white">
+    <Card.Header className="d-flex align-items-center justify-content-between bg-light border-bottom-0 rounded-top-4">
+      <div className="d-flex align-items-center">
+        <span className="me-2 text-primary fs-4">✈️</span>
+        <h5 className="mb-0 text-dark fw-bold">Üretilen Uçaklar</h5>
+      </div>
+      <Badge bg="success" pill>Toplam: {aircraft.length} Adet</Badge>
+    </Card.Header>
+    <Card.Body className="p-4 bg-white">
 
-                  <div className="aircraft-types mt-4">
-                    <h6 className="section-title">Uçak Tipleri</h6>
+      {/* 🟢 Toplam Üretilen Uçak */}
+      <div className="total-aircraft text-center p-3 mb-4 rounded bg-light shadow-sm">
+        <h6 className="text-dark fw-bold mb-2">Toplam Üretilen Uçak</h6>
+        <h4 className="text-success fw-bold">{aircraft.length} Adet</h4>
+        <ProgressBar
+          variant="success"
+          now={Math.min(100, aircraft.length * 10)}
+          className="mt-2"
+        />
+      </div>
 
-                    <Row className="aircraft-grid">
-                      {['TB2', 'TB3', 'AKINCI', 'KIZILELMA'].map(type => {
-                        const count = aircraft.filter(a =>
-                          a.ucak_tipi && a.ucak_tipi.name &&
-                          a.ucak_tipi.name.toUpperCase() === type.toUpperCase()
-                        ).length;
+      {/* 🟢 Uçak Tipleri (2 Kart Yukarıda) */}
+      <Row className="gy-3 mb-3">
+        <Col xs={6}>
+          <Card className="h-100 shadow-sm border-0 rounded-3">
+            <Card.Body className="text-center">
+              <span className="fs-3 text-primary">🛩️</span>
+              <h6 className="mt-2 text-dark fw-bold">TB2</h6>
+              <p className="text-muted mb-1">
+                {aircraft.filter(a => a?.ucak_tipi?.name?.toUpperCase() === 'TB2').length} Adet Üretildi
+              </p>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={6}>
+          <Card className="h-100 shadow-sm border-0 rounded-3">
+            <Card.Body className="text-center">
+              <span className="fs-3 text-warning">✈️</span>
+              <h6 className="mt-2 text-dark fw-bold">TB3</h6>
+              <p className="text-muted mb-1">
+                {aircraft.filter(a => a.ucak_tipi_adi?.toUpperCase() === 'TB3').length} Adet Üretildi
+              </p>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
-                        const maxCount = 10; // For visualization
-                        const percentage = Math.min(100, (count / maxCount) * 100);
+      {/* 🟢 Uçak Tipleri (2 Kart Aşağıda) */}
+      <Row className="gy-3">
+        <Col xs={6}>
+          <Card className="h-100 shadow-sm border-0 rounded-3">
+            <Card.Body className="text-center">
+              <span className="fs-3 text-info">🛫</span>
+              <h6 className="mt-2 text-dark fw-bold">AKINCI</h6>
+              <p className="text-muted mb-1">
+                {aircraft.filter(a => a.ucak_tipi_adi?.toUpperCase() === 'AKINCI').length} Adet Üretildi
+              </p>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={6}>
+          <Card className="h-100 shadow-sm border-0 rounded-3">
+            <Card.Body className="text-center">
+              <span className="fs-3 text-danger">🚀</span>
+              <h6 className="mt-2 text-dark fw-bold">KIZILELMA</h6>
+              <p className="text-muted mb-1">
+                {aircraft.filter(a => a.ucak_tipi_adi?.toUpperCase() === 'KIZILELMA').length
+} Adet Üretildi
+              </p>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
-                        return (
-                          <Col sm={6} key={type} className="mb-3">
-                            <div className="aircraft-type-card">
-                              <div className="aircraft-type-inner p-2 text-center border rounded">
-                                <div className="aircraft-type-icon">
-                                  {type === 'TB2' && <span>🛩️</span>}
-                                  {type === 'TB3' && <span>✈️</span>}
-                                  {type === 'AKINCI' && <span>🛫</span>}
-                                  {type === 'KIZILELMA' && <span>🚀</span>}
-                                </div>
-                                <div className="type-name fw-bold">{type}</div>
-                                <Badge bg="primary" className="my-1 aircraft-count">
-                                  {count} adet
-                                </Badge>
-                                <ProgressBar
-                                  now={percentage}
-                                  variant="primary"
-                                  className="mt-2 aircraft-type-progress"
-                                />
-                              </div>
-                            </div>
-                          </Col>
-                        );
-                      })}
-                    </Row>
-                  </div>
-                </div>
+      {/* 🟢 Uçak Montaj Butonu */}
+      <Link
+        to="/assembly"
+        className="btn btn-success text-white w-100 mt-4 rounded-3 shadow-sm"
+        style={{ fontWeight: 'bold' }}
+      >
+        🛠️ Uçak Montaj
+      </Link>
+    </Card.Body>
 
-                <div className="d-grid gap-2">
-                  <Link to="/assembly" className="btn btn-success">
-                    Uçak Montaj
-                  </Link>
-                </div>
-              </Card.Body>
-              <Card.Footer className="text-center">
-                <small className="text-muted">
-                  Son güncelleme: {new Date().toLocaleDateString()}
-                </small>
-              </Card.Footer>
-            </Card>
-          </Col>
+    <Card.Footer className="text-center bg-light rounded-bottom-4 border-top-0">
+      <small className="text-muted">
+        Son güncelleme: {new Date().toLocaleDateString()}
+      </small>
+    </Card.Footer>
+  </Card>
+</Col>
+
+
+
+
         </Row>
 
         {/* Quick Links Row */}

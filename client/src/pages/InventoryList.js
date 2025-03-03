@@ -15,11 +15,11 @@ const InventoryList = () => {
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
 
-  // Silme işlemi için state
+  // States for delete operation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Düzenleme işlemi için state
+  // States for edit operation
   const [showEditModal, setShowEditModal] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
   const [editFormData, setEditFormData] = useState({
@@ -32,13 +32,20 @@ const InventoryList = () => {
     try {
       setLoading(true);
 
-      // Tüm envanter verilerini çek
-      const inventoryData = await inventoryService.getInventory();
+      // Fetch all inventory data
+      const response = await inventoryService.getInventory();
+      // Make sure we're setting an array, even if the API returns something else
+      const inventoryData = Array.isArray(response.results) ? response.results :
+                           (Array.isArray(response) ? response : []);
       setInventory(inventoryData);
 
-      // Düşük stok öğelerini filtrele
-      const lowStock = inventoryData.filter(item => item.dusuk_stok === true);
-      setLowStockItems(lowStock);
+      console.log('Inventory data:', inventoryData); // Debug log
+
+      // Get low stock items directly from API
+      const lowStockResponse = await inventoryService.getLowStockItems();
+      const lowStockData = Array.isArray(lowStockResponse.results) ? lowStockResponse.results :
+                          (Array.isArray(lowStockResponse) ? lowStockResponse : []);
+      setLowStockItems(lowStockData);
 
       // Initialize DataTable
       setTimeout(() => {
@@ -80,9 +87,16 @@ const InventoryList = () => {
   const getGroupedInventory = () => {
     const grouped = {};
 
+    // Safety check to ensure inventory is an array before using forEach
+    if (!Array.isArray(inventory)) {
+      console.error('Inventory is not an array:', inventory);
+      return grouped;
+    }
+
     inventory.forEach(item => {
-      const aircraftType = item.ucak_tipi_detay ? item.ucak_tipi_detay.ad : 'Bilinmeyen';
-      const partType = item.parca_tipi_detay ? item.parca_tipi_detay.ad : 'Bilinmeyen';
+      // Use correct API response fields
+      const aircraftType = item.ucak_tipi_adi || item.ucak_tipi_kodu || 'Bilinmeyen';
+      const partType = item.parca_tipi_adi || 'Bilinmeyen';
 
       if (!grouped[aircraftType]) {
         grouped[aircraftType] = {};
@@ -190,7 +204,7 @@ const InventoryList = () => {
 
   const groupedInventory = getGroupedInventory();
 
-  // Tarih formatını düzeltme yardımcı fonksiyonu
+  // Format date helper function
   const formatDate = (dateString) => {
     try {
       if (!dateString) return 'Bilinmiyor';
@@ -216,7 +230,7 @@ const InventoryList = () => {
           <ul className="mb-0">
             {lowStockItems.map((item, index) => (
               <li key={index}>
-                {item.ucak_tipi_detay ? item.ucak_tipi_detay.ad : '-'} - {item.parca_tipi_detay ? item.parca_tipi_detay.ad : '-'}: {item.mevcut_adet} adet (Minimum: {item.minimum_esik})
+                {item.ucak_tipi_adi || item.ucak_tipi_kodu || '-'} - {item.parca_tipi_adi || '-'}: {item.mevcut_adet} adet (Minimum: {item.minimum_esik})
               </li>
             ))}
           </ul>
@@ -298,8 +312,8 @@ const InventoryList = () => {
                     inventory.map((item) => (
                       <tr key={item.id}>
                         <td>{item.id}</td>
-                        <td>{item.parca_tipi_detay ? item.parca_tipi_detay.ad : '-'}</td>
-                        <td>{item.ucak_tipi_detay ? item.ucak_tipi_detay.ad : '-'}</td>
+                        <td>{item.parca_tipi_adi || '-'}</td>
+                        <td>{item.ucak_tipi_adi || item.ucak_tipi_kodu || '-'}</td>
                         <td>{item.mevcut_adet}</td>
                         <td>{item.minimum_esik}</td>
                         <td>
@@ -352,8 +366,8 @@ const InventoryList = () => {
             <div>
               <p>Aşağıdaki parçayı silmek istediğinize emin misiniz?</p>
               <p>
-                <strong>Parça Tipi:</strong> {itemToDelete.parca_tipi_detay?.ad || '-'}<br />
-                <strong>Uçak Tipi:</strong> {itemToDelete.ucak_tipi_detay?.ad || '-'}<br />
+                <strong>Parça Tipi:</strong> {itemToDelete.parca_tipi_adi || '-'}<br />
+                <strong>Uçak Tipi:</strong> {itemToDelete.ucak_tipi_adi || itemToDelete.ucak_tipi_kodu || '-'}<br />
                 <strong>Mevcut Adet:</strong> {itemToDelete.mevcut_adet}
               </p>
               <Alert variant="warning">
@@ -382,8 +396,8 @@ const InventoryList = () => {
             {itemToEdit && (
               <div>
                 <p>
-                  <strong>Parça Tipi:</strong> {itemToEdit.parca_tipi_detay?.ad || '-'}<br />
-                  <strong>Uçak Tipi:</strong> {itemToEdit.ucak_tipi_detay?.ad || '-'}
+                  <strong>Parça Tipi:</strong> {itemToEdit.parca_tipi_adi || '-'}<br />
+                  <strong>Uçak Tipi:</strong> {itemToEdit.ucak_tipi_adi || itemToEdit.ucak_tipi_kodu || '-'}
                 </p>
                 <Form.Group className="mb-3">
                   <Form.Label>Mevcut Adet</Form.Label>

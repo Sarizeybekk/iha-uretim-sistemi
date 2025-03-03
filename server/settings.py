@@ -17,8 +17,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -31,7 +29,6 @@ SECRET_KEY = 'django-insecure-0l%9==hw*ht#-dmr3b_^h!5(&d9lcwrn#!=u61lhrhqosetk64
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
 
 # Application definition
 
@@ -49,6 +46,7 @@ LOCAL_APPS = [
     'apps.aircrafts',
     'apps.inventory',
     'apps.parts',
+    'server',
 
 ]
 
@@ -56,6 +54,7 @@ THIRD_PARTY_APPS = [
      'rest_framework',
      'drf_yasg',
      'corsheaders',
+    'django_filters',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PARTY_APPS
@@ -129,14 +128,22 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+
+
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25,
+    'EXCEPTION_HANDLER': 'server.utils.custom_exception_handler',
 }
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
@@ -161,14 +168,33 @@ USE_I18N = True
 USE_TZ = True
 
 SWAGGER_SETTINGS = {
-    'USE_SESSION_AUTH': False,
     'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        },
         'Basic': {
             'type': 'basic'
         }
     },
-    'JSON_EDITOR': True,
+    'USE_SESSION_AUTH': True,
+    'PERSIST_AUTH': True,
+    'LOGIN_URL': '/admin/login/',
+    'LOGOUT_URL': '/admin/logout/',
     'VALIDATOR_URL': None,
+    'DOC_EXPANSION': 'list',
+    'OPERATIONS_SORTER': 'alpha',
+    'DEFAULT_MODEL_RENDERING': 'example',
+    # Oturum doğrulama gerektirmiyorsa:
+    'JSON_EDITOR': True,
+    'SUPPORTED_SUBMIT_METHODS': [
+        'get',
+        'post',
+        'put',
+        'delete',
+        'patch',
+    ],
 }
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
