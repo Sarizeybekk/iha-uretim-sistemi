@@ -1,5 +1,7 @@
 # İHA (Hava Aracı) Üretim Uygulaması
 
+Proje Dokuman Linki : https://docs.google.com/document/d/1f2oMgkGYjWt2jSHy-O-IErJ9Bj2C5aspMrAncjgW5Os/edit?usp=sharing
+
 Bu proje, İHA (İnsansız Hava Aracı) üretimi yapan bir şirket için geliştirilen kapsamlı bir üretim ve envanter yönetim sistemidir. Sistem; takımların parça üretimi, montaj işlemleri, envanter takibi ve kullanıcı/personel yönetimini içermektedir.
 
 ## 🚀 Proje Özellikleri
@@ -11,7 +13,6 @@ Bu proje, İHA (İnsansız Hava Aracı) üretimi yapan bir şirket için gelişt
 ### Takım Yönetimi
 - 🛠️ Kanat, Gövde, Kuyruk, Aviyonik ve Montaj takımları
 - 👥 Takıma personel ekleme/çıkarma
-- 📊 Takım bazlı istatistikler
 
 ### Parça Yönetimi
 - 🔒 Takıma özel parça üretimi kısıtlaması
@@ -22,7 +23,7 @@ Bu proje, İHA (İnsansız Hava Aracı) üretimi yapan bir şirket için gelişt
 - ✈️ Montaj takımı tarafından uçak üretimi
 - ✅ Parça uyumluluk kontrolü (TB2 kanadı sadece TB2'de kullanılabilir)
 - ⚠️ Eksik parça uyarı sistemi
-- 🔍 Montajlanan uçak takip sistemi
+- 🔍 Montajlanan uçakların takibi
 
 ### Envanter Takibi
 - 📦 Stok durumu görüntüleme
@@ -35,7 +36,7 @@ Bu proje, İHA (İnsansız Hava Aracı) üretimi yapan bir şirket için gelişt
 - 🐍 Python ve Django: Temel uygulama çatısı
 - 🔄 Django Rest Framework: API oluşturma
 - 🐘 PostgreSQL: Veritabanı
-- 🐳 Docker: Konteynerizasyon
+- 🐳 Docker
 
 ### Frontend
 - ⚛️ React: Kullanıcı arayüzü kütüphanesi
@@ -53,7 +54,7 @@ Bu proje, İHA (İnsansız Hava Aracı) üretimi yapan bir şirket için gelişt
 - Python 3.8+
 - Node.js 14+
 - PostgreSQL
-- Docker (opsiyonel)
+- Docker 
 
 ## ⚙️ Kurulum
 
@@ -64,7 +65,7 @@ Bu proje, İHA (İnsansız Hava Aracı) üretimi yapan bir şirket için gelişt
 git clone https://github.com/Sarizeybekk/iha-uretim-sistemi
 
 # Proje dizinine girin
-cd aircraft-production-app
+cd iha-uretim-sistemi
 
 # Docker container'larını başlatın
 docker-compose up -d
@@ -80,7 +81,7 @@ docker-compose exec web python manage.py migrate
 git clone https://github.com/Sarizeybekk/iha-uretim-sistemi
 
 # Proje dizinine girin
-cd aircraft-production-app
+cd iha-uretim-sistemi
 
 # Virtual environment oluşturun
 python -m venv venv
@@ -108,7 +109,7 @@ python manage.py runserver
 
 Projede modülerlik sağlanmıştır. Her bir sorumluluk için ayrı app yapısı oluşturulmuştur:
 
-- **users**: Kullanıcı ve yetkilendirme işlemleri
+- **accounts**: Kullanıcı ve yetkilendirme işlemleri
 - **teams**: Takım yönetimi
 - **parts**: Parça üretimi ve yönetimi 
 - **aircraft**: Uçak montaj ve takibi
@@ -127,47 +128,53 @@ API rotaları Swagger aracılığıyla dokümante edilmiştir ve `/api/swagger/`
 
 ## 🧪 Birim Testleri
 
-Projenin model ve API katmanları için kapsamlı birim testleri bulunmaktadır.
+Projenin  bazı model API katmanları ve signals için kapsamlı birim testleri bulunmaktadır.
 
 ```bash
 # Tüm testleri çalıştır
 python manage.py test
 
 # Belirli bir uygulama testlerini çalıştır
-python manage.py test production
+python manage.py test aircrafts
 ```
 
 ## 📸 Ekran Görüntüleri
 ###Swagger UI 
-![image](https://github.com/user-attachments/assets/1e20dbf8-9a69-43c1-8577-e282604e3a6e)
+![image](https://github.com/user-attachments/assets/3ea1663c-8c39-419c-95cd-24715e48b14e)
+
 
 
 ### Giriş Ekranı
-<img width="1506" alt="giris" src="https://github.com/user-attachments/assets/860423dd-eda0-44b7-978b-d728d258baf3" />
+![image](https://github.com/user-attachments/assets/b46b8dd4-4e74-4e84-87be-d5d52edeb67c)
+
 
 
 ### Ana Sayfa (Dashboard)
 
-<img width="1169" alt="dashboard" src="https://github.com/user-attachments/assets/46ae0e11-9748-473c-9339-abc7ab220cfd" />
+![image](https://github.com/user-attachments/assets/d60a186f-a20d-49b3-a737-ceed378932f0)
+
 
 
 
 ### Parça Yönetimi
+![image](https://github.com/user-attachments/assets/387ac098-f08e-49c6-9eae-ad6a20be2770)
+adminde kontrol
 <img width="731" alt="part-add" src="https://github.com/user-attachments/assets/793a35ca-006a-463b-861d-b5a7ceb89f76" />
 
 
 ### Uçak Montaj
-<img width="1298" alt="stok-durumu" src="https://github.com/user-attachments/assets/e9dcc0b7-571c-4675-b72f-bc7dc5b6bc7b" />
+![image](https://github.com/user-attachments/assets/a3ac5aac-dbd6-4837-9c55-174313cfe4c2)
+![image](https://github.com/user-attachments/assets/264a1398-708b-4193-86a9-be2133d8f06c)
+![image](https://github.com/user-attachments/assets/5a17f784-8493-4a81-8667-27a349437ce0)
+![image](https://github.com/user-attachments/assets/e01fee7d-4ee5-446a-b7ca-a9bc322ff517)
 
 
 ### Envanter Takibi
-<img width="1398" alt="envanter-sayfasi" src="https://github.com/user-attachments/assets/61a12612-7bbd-4227-a020-ef92d6f5d567" />
-
-### Takım Sayfası 
-
-<img width="1507" alt="takim-sayfasi" src="https://github.com/user-attachments/assets/ee33e62e-c5af-4d97-b62c-95f7f3a2653d" />
-<img width="666" alt="takim-edit" src="https://github.com/user-attachments/assets/0ab7aa9d-52db-4b29-aa2c-17355ecbdcf3" />
+![image](https://github.com/user-attachments/assets/376ea3c0-1184-451b-b4af-2182d2eaea29)
+![image](https://github.com/user-attachments/assets/fe53c151-c962-4216-b990-3a1e69940030)
 
 
+
+Proje detayı ve test sonuçları hepsi dokumana eklenmiştir.
 
 Proje Dokuman Linki : https://docs.google.com/document/d/1f2oMgkGYjWt2jSHy-O-IErJ9Bj2C5aspMrAncjgW5Os/edit?usp=sharing
